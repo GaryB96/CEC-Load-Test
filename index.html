@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>CEC Section 8 Residential Calculator (Single Dwelling) - v3</title>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#0b6ef0"/>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+<header class="wrap">
+  <h1>CEC Sec. 8 - Single Dwelling Load Calculator <span class="tag"></span></h1>
+  <p class="sub">CSA C22.1:24 Section 8</p>
+</header>
+
+<main class="wrap grid">
+  <section class="card col-12">
+    <h2>Inputs</h2>
+    <form id="calcForm" class="stack" onsubmit="return false;">
+      <fieldset class="stack">
+        <legend>Area</legend>
+        <div class="grid">
+          <div class="col-6">
+            <label for="groundUpperArea">Ground + upper living area (ft^2)</label>
+            <input id="groundUpperArea" type="number" inputmode="decimal" min="0" step="1" value="1100" required>
+          </div>
+          <div class="col-6">
+            <label for="basementArea">Basement area >= 5 ft 11 in (1.8 m) height (ft^2)</label>
+            <input id="basementArea" type="number" inputmode="decimal" min="0" step="1" value="0">
+            <p class="help">Only the portion >= 1.8 m high counts at 75% toward the living area.</p>
+          </div>
+
+        </div>
+      </fieldset>
+
+      <fieldset class="stack">
+        <legend>Space conditioning (8-106(3))</legend>
+        <div class="grid">
+          <div class="col-4">
+            <label for="spaceHeatConnected">Electric space heating - <u>connected</u> (W)</label>
+            <input id="spaceHeatConnected" type="number" inputmode="decimal" min="0" step="1" value="0">
+          </div>
+          <div class="col-4">
+            <label for="airCond">Air conditioning (W)</label>
+            <input id="airCond" type="number" inputmode="decimal" min="0" step="1" value="0">
+          </div>
+          <div class="col-4">
+            <label for="interlock">Interlock heat vs A/C?</label>
+            <select id="interlock">
+              <option value="yes">Yes - use greater of heat or A/C</option>
+              <option value="no" selected>No - add both</option>
+            </select>
+          </div>
+        </div>
+      </fieldset>
+
+      <fieldset class="stack">
+        <legend>Cooking (8-200(1)(a)(iv))</legend>
+        <div class="grid">
+          <div class="col-6">
+            <label for="rangeCount">Number of ranges</label>
+            <input id="rangeCount" type="number" min="0" step="1" value="1">
+          </div>
+          <div class="col-6">
+            <label for="rangeWatts">Nameplate per range (W)</label>
+            <input id="rangeWatts" type="number" min="0" step="1" value="12000">
+            <p class="help">Demand: 6000 W for a single range + 40% of any amount &gt; 12 000 W.</p>
+          </div>
+        </div>
+      </fieldset>
+
+      <fieldset class="stack">
+        <legend>Water heating (8-200(1)(a)(v))</legend>
+        <div class="grid">
+          <div class="col-4">
+            <label for="tanklessWatts">Tankless water heater(s) - total (W)</label>
+            <input id="tanklessWatts" type="number" min="0" step="1" value="0">
+          </div>
+          <div class="col-4">
+            <label for="specialWHWatts">WH for steamers/pools/hot tubs/spas - total (W)</label>
+            <input id="specialWHWatts" type="number" min="0" step="1" value="0">
+          </div>
+          <div class="col-4">
+            <label for="storageWHWatts">Standard storage water heater - total (W)</label>
+            <input id="storageWHWatts" type="number" min="0" step="1" value="0">
+            <p class="help">This will be counted under "Other &gt;1500 W" (25% if a range is provided).</p>
+          </div>
+        </div>
+      </fieldset>
+
+      <fieldset class="stack">
+        <legend>EV charging (8-200(1)(a)(vi), 8-106(10)-(11), 8-500)</legend>
+        <div class="grid">
+          <div class="col-4">
+            <label for="evseCount">EVSE quantity</label>
+            <input id="evseCount" type="number" min="0" step="1" value="0">
+          </div>
+          <div class="col-4">
+            <label for="evseWatts">Per EVSE rating (W)</label>
+            <input id="evseWatts" type="number" min="0" step="1" value="7700">
+          </div>
+          <div class="col-4">
+            <label for="evems">EVEMS compliant?</label>
+            <select id="evems">
+              <option value="no" selected>No - include EVSE at 100%</option>
+              <option value="yes">Yes - exclude EVSE per 8-106(11)</option>
+            </select>
+          </div>
+        </div>
+      </fieldset>
+
+      <fieldset class="stack">
+        <legend>Other fixed appliances &gt; 1500 W (8-200(1)(a)(vii))</legend>
+        <div id="applianceList" class="list"></div>
+        <div class="split">
+          <div class="row">
+            <input id="applianceName" placeholder="e.g., Dishwasher" />
+            <input id="applianceWatts" type="number" min="0" step="1" placeholder="W" />
+          </div>
+          <button class="btn" id="addAppliance">Add</button>
+        </div>
+        <p class="help">If a range is provided, include 25% of each listed load. If no range, include 100% of the first 6000 W combined + 25% of the remainder.</p>
+      </fieldset>
+
+      <fieldset class="stack">
+        <legend>System</legend>
+        <div class="grid">
+          <div class="col-6">
+            <label for="voltage">System voltage</label>
+            <select id="voltage">
+              <option value="240" selected>120/240 V, 1P</option>
+              <option value="208">120/208 V, 1P (derived)</option>
+            </select>
+          </div>
+        </div>
+      </fieldset>
+
+      <div class="row">
+        <button id="calcBtn" class="btn">Calculate</button>
+        <button id="resetBtn" class="btn" type="reset">Reset</button>
+      </div>
+    </form>
+  </section>
+
+  <section class="card col-12">
+    <h2>Results</h2>
+    <div id="debug" class="mono muted"></div>
+    <div id="results" class="grid">
+      <div class="col-6">
+        <div class="result">
+          <div class="kicker">Path A - Detailed sum (8-200(1)(a))</div>
+          <div><strong id="pathA">0</strong> W</div>
+        </div>
+      </div>
+      <div class="col-6">
+        <div class="result">
+          <div class="kicker">Path B - Fixed minimum (8-200(1)(b))</div>
+          <div><strong id="pathB">0</strong> W</div>
+        </div>
+      </div>
+      <div class="col-12">
+        <div class="warn">
+          <div class="kicker">Calculated load (greater of A or B)</div>
+          <div><strong id="calcLoad">0</strong> W</div>
+        </div>
+      </div>
+      <div class="col-6">
+        <div class="card">
+          <div class="kicker">Minimum service/feeder current</div>
+          <div class="big"><strong id="minAmps">0</strong> A @ <span id="voltsLabel">240</span> V</div>
+          <p class="help">Per 8-200(3), the overall dwelling calc is not treated as 100% continuous for 8-104.</p>
+        </div>
+      </div>
+      <div class="col-6">
+        <div class="card">
+          <div class="kicker">Why a basement change may not move the result</div>
+          <ul class="notes">
+            <li>Basement only affects <strong>Path A</strong> via the basic load (75% factor). It does <em>not</em> change Path B.</li>
+            <li>If Path B (24 000 W / 14 400 W) still governs, the final result won't change until Path A exceeds Path B.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+
+
+<script src="app.js"></script>
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('service-worker.js');
+    });
+  }
+</script>
+</body>
+</html>

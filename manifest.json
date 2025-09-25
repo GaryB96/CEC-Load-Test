@@ -1,0 +1,9 @@
+{
+  "name": "CEC Sec. 8 Single Dwelling Calculator v3",
+  "short_name": "CEC Sec8 Calc",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#fafafa",
+  "theme_color": "#0b6ef0",
+  "icons": []
+}
