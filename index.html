@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -41,24 +41,38 @@
             <div class="col-6">
               <label for="groundUpperArea">Ground + upper living area (ft^2)</label>
               <input id="groundUpperArea" type="number" inputmode="decimal" min="0" step="1" value="1100" required>
-              <div class="dim-helper" aria-live="polite">
-                <input id="groundUpperLength" type="number" inputmode="decimal" min="0" step="0.1" placeholder="Length (ft)">
-                <span class="dim-symbol">&times;</span>
-                <input id="groundUpperWidth" type="number" inputmode="decimal" min="0" step="0.1" placeholder="Width (ft)">
-                <span class="dim-symbol">=</span>
-                <span class="dim-area" id="groundUpperCalc">--</span>
+                            <div class="dim-helper" aria-live="polite">
+                <div class="dim-rows" id="groundUpperDimRows">
+                  <div class="dim-row" data-initial="true">
+                    <input id="groundUpperLength" class="dim-length" type="number" inputmode="decimal" min="0" step="0.1" placeholder="Length (ft)">
+                    <span class="dim-symbol">&times;</span>
+                    <input id="groundUpperWidth" class="dim-width" type="number" inputmode="decimal" min="0" step="0.1" placeholder="Width (ft)">
+                  </div>
+                </div>
+                <div class="dim-footer">
+                  <button id="addGroundUpperDim" class="btn ghost" type="button">Add section</button>
+                  <span class="dim-symbol">=</span>
+                  <span class="dim-area" id="groundUpperCalc">--</span>
+                </div>
               </div>
               <p class="help dim-note">Length &times; width auto-fills the area field.</p>
             </div>
             <div class="col-6">
               <label for="basementArea">Basement area >= 5 ft 11 in (1.8 m) height (ft^2)</label>
               <input id="basementArea" type="number" inputmode="decimal" min="0" step="1" value="0">
-              <div class="dim-helper" aria-live="polite">
-                <input id="basementLength" type="number" inputmode="decimal" min="0" step="0.1" placeholder="Length (ft)">
-                <span class="dim-symbol">&times;</span>
-                <input id="basementWidth" type="number" inputmode="decimal" min="0" step="0.1" placeholder="Width (ft)">
-                <span class="dim-symbol">=</span>
-                <span class="dim-area" id="basementCalc">--</span>
+                            <div class="dim-helper" aria-live="polite">
+                <div class="dim-rows" id="basementDimRows">
+                  <div class="dim-row" data-initial="true">
+                    <input id="basementLength" class="dim-length" type="number" inputmode="decimal" min="0" step="0.1" placeholder="Length (ft)">
+                    <span class="dim-symbol">&times;</span>
+                    <input id="basementWidth" class="dim-width" type="number" inputmode="decimal" min="0" step="0.1" placeholder="Width (ft)">
+                  </div>
+                </div>
+                <div class="dim-footer">
+                  <button id="addBasementDim" class="btn ghost" type="button">Add section</button>
+                  <span class="dim-symbol">=</span>
+                  <span class="dim-area" id="basementCalc">--</span>
+                </div>
               </div>
               <p class="help">Only the portion >= 1.8 m high counts at 75% toward the living area.</p>
             </div>

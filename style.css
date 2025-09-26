@@ -141,6 +141,17 @@ select:focus {
   background: rgba(255,255,255,0.24);
   border-color: rgba(255,255,255,0.36);
 }
+.btn.ghost {
+  background: transparent;
+  border: 1px dashed rgba(61,155,255,0.45);
+  color: var(--accent);
+  padding: 0.5rem 0.95rem;
+}
+
+.btn.ghost:hover {
+  background: rgba(61,155,255,0.18);
+  border-color: rgba(61,155,255,0.6);
+}
 
 
 .btn:hover {
@@ -379,18 +390,56 @@ select option:checked {
 
 .dim-helper {
   display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  flex-wrap: wrap;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.6rem;
   margin-top: 0.45rem;
 }
 
-.dim-helper input {
-  flex: 1 1 90px;
-  max-width: 120px;
-  min-width: 80px;
-  padding: 0.5rem 0.7rem;
+.dim-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
 }
+
+.dim-row {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+}
+
+.dim-row .dim-length,
+.dim-row .dim-width {
+  flex: 1 1 120px;
+  max-width: 140px;
+  min-width: 90px;
+}
+
+.dim-footer {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.dim-remove {
+  margin-left: auto;
+  border: 0;
+  border-radius: 8px;
+  padding: 0.35rem 0.7rem;
+  background: rgba(255,115,135,0.18);
+  color: #ff8ca0;
+  font-size: 0.78rem;
+  cursor: pointer;
+  transition: background 150ms ease, color 150ms ease;
+}
+
+.dim-remove:hover {
+  background: rgba(255,115,135,0.28);
+  color: #ffd0d6;
+}
+
 
 .dim-symbol {
   color: var(--text-muted);

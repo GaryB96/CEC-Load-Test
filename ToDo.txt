@@ -1,0 +1,4 @@
+1. on the report page, in the area section, I'd like it to show the ground floor and upper, basement, and total square footage.
+
+2. if being used on phone or tablet, when clicking generate report, is there a way to make the page open to download it as a pdf and prefill the save name with the policy number first then 'Load Test' and the date of the inspection
+
