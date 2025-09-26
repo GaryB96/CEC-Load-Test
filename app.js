@@ -184,13 +184,119 @@
 
     state.ranges.push(item);
 
-    console.log("Added range", item);
-
     if(nameEl){ nameEl.value = ""; }
     if(countEl){ countEl.value = countEl.defaultValue || "1"; }
     if(wattsEl){ wattsEl.value = wattsEl.defaultValue || ""; }
 
     renderRangeList();
+    calculate();
+
+  }
+  function renderAirCondList(){
+
+    const host = $("airCondList");
+
+    if(!host){ return; }
+
+    host.innerHTML = "";
+
+    state.airCond.forEach((item, idx) => {
+
+      const row = document.createElement("div");
+      row.className = "item";
+
+      const name = document.createElement("div");
+      name.textContent = item.label;
+
+      const val = document.createElement("div");
+      val.className = "mono";
+      val.textContent = item.type === "amps"
+        ? `${fmtA(item.amps)} A @ ${fmtA(item.voltage)} V (${fmtW(item.watts)} W)`
+        : `${fmtW(item.watts)} W`;
+
+      const kill = document.createElement("button");
+      kill.className = "kill";
+      kill.textContent = "Remove";
+      kill.addEventListener("click", () => {
+        state.airCond.splice(idx,1);
+        renderAirCondList();
+        calculate();
+      });
+
+      row.appendChild(name);
+      row.appendChild(val);
+      row.appendChild(kill);
+      host.appendChild(row);
+
+    });
+
+  }
+
+  function updateAirCondInputMode(){
+
+    const typeEl = $("airCondType");
+    const valueEl = $("airCondValue");
+    const voltageEl = $("airCondVoltage");
+
+    if(!typeEl || !valueEl || !voltageEl){ return; }
+
+    const type = typeEl.value;
+
+    if(type === "amps"){
+      voltageEl.style.display = "";
+      voltageEl.disabled = false;
+      valueEl.placeholder = "Amps";
+    } else {
+      voltageEl.style.display = "none";
+      voltageEl.disabled = true;
+      valueEl.placeholder = "Watts";
+    }
+
+  }
+
+  function addAirCond(){
+
+    const nameEl = $("airCondName");
+    const typeEl = $("airCondType");
+    const valueEl = $("airCondValue");
+    const voltageEl = $("airCondVoltage");
+
+    if(!typeEl || !valueEl){ return; }
+
+    const label = nameEl ? nameEl.value.trim() : "";
+    const type = typeEl.value;
+    const value = parseFloat(valueEl.value);
+
+    if(isNaN(value) || value <= 0){ return; }
+
+    let watts = 0;
+    let amps = null;
+    let voltage = null;
+
+    if(type === "amps"){
+      const rawVoltage = voltageEl ? parseFloat(voltageEl.value) : NaN;
+      if(isNaN(rawVoltage) || rawVoltage <= 0){ return; }
+      amps = value;
+      voltage = rawVoltage;
+      watts = amps * voltage;
+    } else {
+      watts = value;
+    }
+
+    const item = {
+      label: label || (type === "amps" ? "Cooling load (A)" : "Cooling load (W)"),
+      type,
+      watts: Math.round(watts),
+      amps: type === "amps" ? amps : null,
+      voltage: type === "amps" ? voltage : null
+    };
+
+    state.airCond.push(item);
+
+    if(nameEl){ nameEl.value = ""; }
+    valueEl.value = "";
+
+    renderAirCondList();
     calculate();
 
   }
