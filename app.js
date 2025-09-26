@@ -299,7 +299,9 @@
     renderAirCondList();
     calculate();
 
-  }`r`n`r`n  function setupCollapsibles(){
+  }
+
+  function setupCollapsibles(){
 
     const sections = document.querySelectorAll("fieldset.collapsible");
 
@@ -328,7 +330,9 @@
 
     });
 
-  }`r`n`r`n  function renderApplianceList(){
+  }
+
+  function renderApplianceList(){
 
     const host = $("applianceList");
 
