@@ -19,151 +19,200 @@
   <section class="card col-12">
     <h2>Inputs</h2>
     <form id="calcForm" class="stack" onsubmit="return false;">
-      <fieldset class="stack">
-        <legend>Area</legend>
-        <div class="grid">
-          <div class="col-6">
-            <label for="groundUpperArea">Ground + upper living area (ft^2)</label>
-            <input id="groundUpperArea" type="number" inputmode="decimal" min="0" step="1" value="1100" required>
-          </div>
-          <div class="col-6">
-            <label for="basementArea">Basement area >= 5 ft 11 in (1.8 m) height (ft^2)</label>
-            <input id="basementArea" type="number" inputmode="decimal" min="0" step="1" value="0">
-            <p class="help">Only the portion >= 1.8 m high counts at 75% toward the living area.</p>
-          </div>
-
+            <fieldset class="stack collapsible">
+        <legend>
+          <button class="collapse-toggle" type="button" aria-expanded="true" aria-controls="section-area">
+            <span>Area</span>
+            <span class="chevron" aria-hidden="true"></span>
+          </button>
+        </legend>
+        <div class="collapse-body" id="section-area">
+          <div class="grid">
+                    <div class="col-6">
+                      <label for="groundUpperArea">Ground + upper living area (ft^2)</label>
+                      <input id="groundUpperArea" type="number" inputmode="decimal" min="0" step="1" value="1100" required>
+                    </div>
+                    <div class="col-6">
+                      <label for="basementArea">Basement area >= 5 ft 11 in (1.8 m) height (ft^2)</label>
+                      <input id="basementArea" type="number" inputmode="decimal" min="0" step="1" value="0">
+                      <p class="help">Only the portion >= 1.8 m high counts at 75% toward the living area.</p>
+                    </div>
+          
+                  </div>
         </div>
       </fieldset>
 
-      <fieldset class="stack">
-        <legend>Space conditioning (8-106(3))</legend>
-        <div class="grid">
-          <div class="col-12">
-            <label>Electric space heating loads</label>
-            <div id="spaceHeatList" class="list"></div>
-            <div class="split">
-              <div class="row">
-                <input id="spaceHeatName" placeholder="e.g., Heat pump" />
-                <select id="spaceHeatType">
-                  <option value="watts" selected>Watts</option>
-                  <option value="amps">Amps</option>
-                </select>
-                <input id="spaceHeatValue" type="number" inputmode="decimal" min="0" step="1" placeholder="Watts" />
-                <input id="spaceHeatVoltage" type="number" inputmode="decimal" min="0" step="1" value="240" placeholder="Voltage (V)" style="display:none;" />
-              </div>
-              <button class="btn" id="addSpaceHeat" type="button">Add</button>
-            </div>
-            <p class="help">Enter each heating appliance by watts or by amps @ voltage; loads are counted at 100%.</p>
-          </div>
-          <div class="col-12">
-            <label>Air conditioning loads</label>
-            <div id="airCondList" class="list"></div>
-            <div class="split">
-              <div class="row">
-                <input id="airCondName" placeholder="e.g., AC unit" />
-                <select id="airCondType">
-                  <option value="watts" selected>Watts</option>
-                  <option value="amps">Amps</option>
-                </select>
-                <input id="airCondValue" type="number" inputmode="decimal" min="0" step="1" placeholder="Watts" />
-                <input id="airCondVoltage" type="number" inputmode="decimal" min="0" step="1" value="240" placeholder="Voltage (V)" style="display:none;" />
-              </div>
-              <button class="btn" id="addAirCond" type="button">Add</button>
-            </div>
-            <p class="help">Enter each cooling appliance by watts or by amps @ voltage.</p>
-          </div>
-          <div class="col-4">
-            <label for="interlock">Interlock heat vs A/C?</label>
-            <select id="interlock">
-              <option value="yes">Yes - use greater of heat or A/C</option>
-              <option value="no" selected>No - add both</option>
-            </select>
-          </div>
+            <fieldset class="stack collapsible">
+        <legend>
+          <button class="collapse-toggle" type="button" aria-expanded="true" aria-controls="section-space">
+            <span>Space conditioning (8-106(3))</span>
+            <span class="chevron" aria-hidden="true"></span>
+          </button>
+        </legend>
+        <div class="collapse-body" id="section-space">
+          <div class="grid">
+                    <div class="col-12">
+                      <label>Electric space heating loads</label>
+                      <div id="spaceHeatList" class="list"></div>
+                      <div class="split">
+                        <div class="row">
+                          <input id="spaceHeatName" type="text" placeholder="e.g., Heat pump" />
+                          <select id="spaceHeatType">
+                            <option value="watts" selected>Watts</option>
+                            <option value="amps">Amps</option>
+                          </select>
+                          <input id="spaceHeatValue" type="number" inputmode="decimal" min="0" step="1" placeholder="Watts" />
+                          <input id="spaceHeatVoltage" type="number" inputmode="decimal" min="0" step="1" value="240" placeholder="Voltage (V)" style="display:none;" />
+                        </div>
+                        <button class="btn" id="addSpaceHeat" type="button">Add</button>
+                      </div>
+                      <p class="help">Enter each heating appliance by watts or by amps @ voltage; loads are counted at 100%.</p>
+                    </div>
+                    <div class="col-12">
+                      <label>Air conditioning loads</label>
+                      <div id="airCondList" class="list"></div>
+                      <div class="split">
+                        <div class="row">
+                          <input id="airCondName" type="text" placeholder="e.g., AC unit" />
+                          <select id="airCondType">
+                            <option value="watts" selected>Watts</option>
+                            <option value="amps">Amps</option>
+                          </select>
+                          <input id="airCondValue" type="number" inputmode="decimal" min="0" step="1" placeholder="Watts" />
+                          <input id="airCondVoltage" type="number" inputmode="decimal" min="0" step="1" value="240" placeholder="Voltage (V)" style="display:none;" />
+                        </div>
+                        <button class="btn" id="addAirCond" type="button">Add</button>
+                      </div>
+                      <p class="help">Enter each cooling appliance by watts or by amps @ voltage.</p>
+                    </div>
+                    <div class="col-4">
+                      <label for="interlock">Interlock heat vs A/C?</label>
+                      <select id="interlock">
+                        <option value="yes">Yes - use greater of heat or A/C</option>
+                        <option value="no" selected>No - add both</option>
+                      </select>
+                    </div>
+                  </div>
         </div>
       </fieldset>
 
-      <fieldset class="stack">
-        <legend>Cooking (8-200(1)(a)(iv))</legend>
-        <div class="grid">
-          <div class="col-12">
-            <label>Ranges</label>
-            <div id="rangeList" class="list"></div>
-            <div class="split">
-              <div class="row">
-                <input id="rangeName" placeholder="e.g., Kitchen range" />
-                <input id="rangeCount" type="number" min="1" step="1" value="1" placeholder="Qty" />
-                <input id="rangeWatts" type="number" min="0" step="1" value="12000" placeholder="Watts" />
-              </div>
-              <button class="btn" id="addRange" type="button">Add</button>
-            </div>
-            <p class="help">Demand per 8-200(1)(a)(iv): 6000 W for each range + 40% of any nameplate over 12 000 W.</p>
-          </div>
+            <fieldset class="stack collapsible">
+        <legend>
+          <button class="collapse-toggle" type="button" aria-expanded="true" aria-controls="section-cooking">
+            <span>Cooking (8-200(1)(a)(iv))</span>
+            <span class="chevron" aria-hidden="true"></span>
+          </button>
+        </legend>
+        <div class="collapse-body" id="section-cooking">
+          <div class="grid">
+                    <div class="col-12">
+                      <label>Ranges</label>
+                      <div id="rangeList" class="list"></div>
+                      <div class="split">
+                        <div class="row">
+                          <input id="rangeName" type="text" placeholder="e.g., Kitchen range" />
+                          <input id="rangeCount" type="number" min="1" step="1" value="1" placeholder="Qty" />
+                          <input id="rangeWatts" type="number" min="0" step="1" value="12000" placeholder="Watts" />
+                        </div>
+                        <button class="btn" id="addRange" type="button">Add</button>
+                      </div>
+                      <p class="help">Demand per 8-200(1)(a)(iv): 6000 W for each range + 40% of any nameplate over 12 000 W.</p>
+                    </div>
+                  </div>
         </div>
       </fieldset>
 
-      <fieldset class="stack">
-        <legend>Water heating (8-200(1)(a)(v))</legend>
-        <div class="grid">
-          <div class="col-4">
-            <label for="tanklessWatts">Tankless water heater(s) - total (W)</label>
-            <input id="tanklessWatts" type="number" min="0" step="1" value="0">
-          </div>
-          <div class="col-4">
-            <label for="specialWHWatts">WH for steamers/pools/hot tubs/spas - total (W)</label>
-            <input id="specialWHWatts" type="number" min="0" step="1" value="0">
-          </div>
-          <div class="col-4">
-            <label for="storageWHWatts">Standard storage water heater - total (W)</label>
-            <input id="storageWHWatts" type="number" min="0" step="1" value="0">
-            <p class="help">This will be counted under "Other &gt;1500 W" (25% if a range is provided).</p>
-          </div>
+            <fieldset class="stack collapsible">
+        <legend>
+          <button class="collapse-toggle" type="button" aria-expanded="true" aria-controls="section-water">
+            <span>Water heating (8-200(1)(a)(v))</span>
+            <span class="chevron" aria-hidden="true"></span>
+          </button>
+        </legend>
+        <div class="collapse-body" id="section-water">
+          <div class="grid">
+                    <div class="col-4">
+                      <label for="tanklessWatts">Tankless water heater(s) - total (W)</label>
+                      <input id="tanklessWatts" type="number" min="0" step="1" value="0">
+                    </div>
+                    <div class="col-4">
+                      <label for="specialWHWatts">WH for steamers/pools/hot tubs/spas - total (W)</label>
+                      <input id="specialWHWatts" type="number" min="0" step="1" value="0">
+                    </div>
+                    <div class="col-4">
+                      <label for="storageWHWatts">Standard storage water heater - total (W)</label>
+                      <input id="storageWHWatts" type="number" min="0" step="1" value="0">
+                      <p class="help">This will be counted under "Other &gt;1500 W" (25% if a range is provided).</p>
+                    </div>
+                  </div>
         </div>
       </fieldset>
 
-      <fieldset class="stack">
-        <legend>EV charging (8-200(1)(a)(vi), 8-106(10)-(11), 8-500)</legend>
-        <div class="grid">
-          <div class="col-4">
-            <label for="evseCount">EVSE quantity</label>
-            <input id="evseCount" type="number" min="0" step="1" value="0">
-          </div>
-          <div class="col-4">
-            <label for="evseWatts">Per EVSE rating (W)</label>
-            <input id="evseWatts" type="number" min="0" step="1" value="7700">
-          </div>
-          <div class="col-4">
-            <label for="evems">EVEMS compliant?</label>
-            <select id="evems">
-              <option value="no" selected>No - include EVSE at 100%</option>
-              <option value="yes">Yes - exclude EVSE per 8-106(11)</option>
-            </select>
-          </div>
+            <fieldset class="stack collapsible">
+        <legend>
+          <button class="collapse-toggle" type="button" aria-expanded="true" aria-controls="section-ev">
+            <span>EV charging (8-200(1)(a)(vi), 8-106(10)-(11), 8-500)</span>
+            <span class="chevron" aria-hidden="true"></span>
+          </button>
+        </legend>
+        <div class="collapse-body" id="section-ev">
+          <div class="grid">
+                    <div class="col-4">
+                      <label for="evseCount">EVSE quantity</label>
+                      <input id="evseCount" type="number" min="0" step="1" value="0">
+                    </div>
+                    <div class="col-4">
+                      <label for="evseWatts">Per EVSE rating (W)</label>
+                      <input id="evseWatts" type="number" min="0" step="1" value="0">
+                    </div>
+                    <div class="col-4">
+                      <label for="evems">EVEMS compliant?</label>
+                      <select id="evems">
+                        <option value="no" selected>No - include EVSE at 100%</option>
+                        <option value="yes">Yes - exclude EVSE per 8-106(11)</option>
+                      </select>
+                    </div>
+                  </div>
         </div>
       </fieldset>
 
-      <fieldset class="stack">
-        <legend>Other fixed appliances &gt; 1500 W (8-200(1)(a)(vii))</legend>
-        <div id="applianceList" class="list"></div>
-        <div class="split">
-          <div class="row">
-            <input id="applianceName" placeholder="e.g., Dishwasher" />
-            <input id="applianceWatts" type="number" min="0" step="1" placeholder="W" />
-          </div>
-          <button class="btn" id="addAppliance">Add</button>
+            <fieldset class="stack collapsible">
+        <legend>
+          <button class="collapse-toggle" type="button" aria-expanded="true" aria-controls="section-appliances">
+            <span>Other fixed appliances &gt; 1500 W (8-200(1)(a)(vii))</span>
+            <span class="chevron" aria-hidden="true"></span>
+          </button>
+        </legend>
+        <div class="collapse-body" id="section-appliances">
+          <div id="applianceList" class="list"></div>
+                  <div class="split">
+                    <div class="row">
+                      <input id="applianceName" type="text" placeholder="e.g., Dishwasher" />
+                      <input id="applianceWatts" type="number" min="0" step="1" placeholder="Watts" />
+                    </div>
+                    <button class="btn" id="addAppliance">Add</button>
+                  </div>
+                  <p class="help">If a range is provided, include 25% of each listed load. If no range, include 100% of the first 6000 W combined + 25% of the remainder.</p>
         </div>
-        <p class="help">If a range is provided, include 25% of each listed load. If no range, include 100% of the first 6000 W combined + 25% of the remainder.</p>
       </fieldset>
 
-      <fieldset class="stack">
-        <legend>System</legend>
-        <div class="grid">
-          <div class="col-6">
-            <label for="voltage">System voltage</label>
-            <select id="voltage">
-              <option value="240" selected>120/240 V, 1P</option>
-              <option value="208">120/208 V, 1P (derived)</option>
-            </select>
-          </div>
+            <fieldset class="stack collapsible">
+        <legend>
+          <button class="collapse-toggle" type="button" aria-expanded="true" aria-controls="section-system">
+            <span>System</span>
+            <span class="chevron" aria-hidden="true"></span>
+          </button>
+        </legend>
+        <div class="collapse-body" id="section-system">
+          <div class="grid">
+                    <div class="col-6">
+                      <label for="voltage">System voltage</label>
+                      <select id="voltage">
+                        <option value="240" selected>120/240 V, 1P</option>
+                        <option value="208">120/208 V, 1P</option>
+                      </select>
+                    </div>
+                  </div>
         </div>
       </fieldset>
 

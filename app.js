@@ -299,9 +299,36 @@
     renderAirCondList();
     calculate();
 
-  }
+  }`r`n`r`n  function setupCollapsibles(){
 
-  function renderApplianceList(){
+    const sections = document.querySelectorAll("fieldset.collapsible");
+
+    sections.forEach((fieldset) => {
+
+      const toggle = fieldset.querySelector(".collapse-toggle");
+      const body = fieldset.querySelector(".collapse-body");
+
+      if(!toggle || !body){ return; }
+
+      const expanded = toggle.getAttribute("aria-expanded") !== "false";
+
+      if(!expanded){
+        fieldset.classList.add("collapsed");
+        body.hidden = true;
+      }
+
+      toggle.addEventListener("click", () => {
+
+        const isCollapsed = fieldset.classList.toggle("collapsed");
+        const expandedNow = !isCollapsed;
+        toggle.setAttribute("aria-expanded", expandedNow ? "true" : "false");
+        body.hidden = !expandedNow;
+
+      });
+
+    });
+
+  }`r`n`r`n  function renderApplianceList(){
 
     const host = $("applianceList");
 
@@ -630,6 +657,7 @@
   });
 
   // Initial render
+  setupCollapsibles();
 
   updateSpaceHeatInputMode();
 
