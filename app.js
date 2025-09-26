@@ -45,6 +45,29 @@
 
     function setupCollapsibles(){ var sections=document.querySelectorAll('fieldset.collapsible'); Array.prototype.forEach.call(sections, function(fieldset){ var toggle=fieldset.querySelector('.collapse-toggle'); var body=fieldset.querySelector('.collapse-body'); if(!toggle||!body) return; var expanded = toggle.getAttribute('aria-expanded') !== 'false'; if(!expanded){ fieldset.classList.add('collapsed'); body.hidden = true; } toggle.addEventListener('click', function(){ var isCollapsed = fieldset.classList.toggle('collapsed'); var expandedNow = !isCollapsed; toggle.setAttribute('aria-expanded', expandedNow ? 'true' : 'false'); body.hidden = !expandedNow; }); }); }
 
+    // Watts calculator wiring
+    function setupWattsCalc(){
+      var valEl = $('calcValue');
+      var voltEl = $('calcVoltage');
+      var resultEl = $('calcResult');
+      var clearBtn = $('clearCalc');
+
+      function compute(){
+        var amps = valEl ? parseFloat(valEl.value) : NaN;
+        var voltage = voltEl ? parseFloat(voltEl.value) : 240;
+        if(isNaN(amps) || amps <= 0){ if(resultEl) resultEl.textContent = '-- W'; return; }
+        var watts = amps * (isNaN(voltage) ? 240 : voltage);
+        if(resultEl) resultEl.textContent = Math.round(watts) + ' W';
+        return watts;
+      }
+
+      if(valEl) valEl.addEventListener('input', compute);
+      if(voltEl) voltEl.addEventListener('change', compute);
+
+      if(clearBtn){ clearBtn.addEventListener('click', function(){ if(valEl) valEl.value=''; if(voltEl) voltEl.value='240'; if(resultEl) resultEl.textContent='-- W'; setTimeout(calculate,50); }); }
+      compute();
+    }
+
     // Live auto-fill intentionally disabled.
     function setupAreaDimensions(){ /* no-op */ }
 
@@ -116,43 +139,271 @@
       if(!lastCalcSnapshot) calculate();
       var snapshot = lastCalcSnapshot;
       if(!snapshot){ alert('Please calculate the load before generating a report.'); return; }
-      var inspectionEl=$('inspectionDate'); var policyEl=$('policyNumber');
+      var inspectionEl = $('inspectionDate');
+      var policyEl = $('policyNumber');
       var inspectionValue = inspectionEl ? inspectionEl.value : '';
       var policyValue = policyEl ? policyEl.value.trim() : '';
       var inspectionDisplay = formatInspectionDate(inspectionValue) || 'Not provided';
       var policyDisplay = policyValue ? escapeHtml(policyValue) : 'Not provided';
 
-      var areaRows = [];
+      function fmtW(n){ return new Intl.NumberFormat().format(Math.round(n)); }
+      function fmtA(n){ return new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 }).format(n); }
 
-      // If separate ground/upper inputs exist, show them separately.
-      var groundFloorEl = $('groundFloorArea');
-      var upperFloorEl = $('upperFloorArea');
-      if(groundFloorEl && upperFloorEl){
-        var groundFloor = parseFloat(groundFloorEl.value) || 0;
-        var upperFloor = parseFloat(upperFloorEl.value) || 0;
-        areaRows.push('<tr><th scope="row">Ground floor area</th><td>'+fmtA(groundFloor)+' ft\u00b2</td></tr>');
-        areaRows.push('<tr><th scope="row">Upper floor area</th><td>'+fmtA(upperFloor)+' ft\u00b2</td></tr>');
-      } else {
-        areaRows.push('<tr><th scope="row">Ground + upper living area</th><td>'+fmtA(snapshot.area.groundUpperFt2)+' ft\u00b2</td></tr>');
+      // Area summary: combined ground+upper, basement, and total living area (100% basement)
+      var totalLiving100 = (parseFloat(snapshot.area.groundUpperFt2) || 0) + (parseFloat(snapshot.area.basementFt2) || 0);
+      var areaRows = [
+        '<tr><th scope="row">Ground & upper living area</th><td>'+fmtA(snapshot.area.groundUpperFt2)+' ft\u00b2</td></tr>',
+        '<tr><th scope="row">Basement area (>= 5 ft 11 in)</th><td>'+fmtA(snapshot.area.basementFt2)+' ft\u00b2</td></tr>',
+        '<tr><th scope="row">Total living area (ground + basement)</th><td>'+fmtA(totalLiving100)+' ft\u00b2</td></tr>'
+      ];
+
+      var spaceHeatRows = state.spaceHeat.length
+        ? state.spaceHeat.map(function(item, idx){ var det = item.type==='amps' ? (fmtA(item.amps)+' A @ '+fmtA(item.voltage)+' V ('+fmtW(item.watts)+' W)') : (fmtW(item.watts)+' W'); return '<tr><td>'+ (idx + 1) + '. ' + escapeHtml(item.label) + '</td><td>' + escapeHtml(det) + '</td></tr>'; }).join('')
+        : '<tr><td colspan="2">No space heating loads recorded.</td></tr>';
+
+      var airRows = state.airCond.length
+        ? state.airCond.map(function(item, idx){ var det = item.type==='amps' ? (fmtA(item.amps)+' A @ '+fmtA(item.voltage)+' V ('+fmtW(item.watts)+' W)') : (fmtW(item.watts)+' W'); return '<tr><td>'+ (idx + 1) + '. ' + escapeHtml(item.label) + '</td><td>' + escapeHtml(det) + '</td></tr>'; }).join('')
+        : '<tr><td colspan="2">No air conditioning loads recorded.</td></tr>';
+
+      var rangeRows = state.ranges.length
+        ? state.ranges.map(function(item, idx){ return '<tr><td>'+ (idx + 1) + '. ' + escapeHtml(item.label) + '</td><td>'+ item.count + ' x ' + fmtW(item.watts) + ' W</td></tr>'; }).join('')
+        : '<tr><td colspan="2">No cooking ranges recorded.</td></tr>';
+
+      var specialWaterRows = state.specialWater.length
+        ? state.specialWater.map(function(item, idx){ return '<tr><td>'+ (idx + 1) + '. ' + escapeHtml(item.name) + '</td><td>'+ fmtW(item.watts) + ' W</td></tr>'; }).join('')
+        : '<tr><td colspan="2">No dedicated water heaters recorded.</td></tr>';
+
+      var appliancesRows = state.appliances.length
+        ? state.appliances.map(function(item, idx){ return '<tr><td>'+ (idx + 1) + '. ' + escapeHtml(item.name) + '</td><td>'+ fmtW(item.watts) + ' W</td></tr>'; }).join('')
+        : '<tr><td colspan="2">No additional fixed appliances recorded.</td></tr>';
+
+      var storageRow = snapshot.loads.storageWHWatts > 0
+        ? '<tr><td>Storage water heater</td><td>'+fmtW(snapshot.loads.storageWHWatts)+' W</td></tr>'
+        : '';
+
+      var tanklessRow = snapshot.loads.tanklessWatts > 0
+        ? '<tr><td>Tankless water heater</td><td>'+fmtW(snapshot.loads.tanklessWatts)+' W</td></tr>'
+        : '';
+
+      var evemsLabel = snapshot.loads.evems ? 'Yes (excluded per 8-106(11))' : 'No (included at 100%)';
+
+      var reportWindow = window.open('', '_blank');
+
+      if(!reportWindow){
+        alert('Please allow pop-ups to view the report.');
+        return;
       }
 
-      areaRows.push('<tr><th scope="row">Basement area (>= 5 ft 11 in)</th><td>'+fmtA(snapshot.area.basementFt2)+' ft\u00b2</td></tr>');
-      areaRows.push('<tr><th scope="row">Total living area (with 75% basement)</th><td>'+fmtA(snapshot.area.livingFt2)+' ft\u00b2</td></tr>');
-      areaRows.push('<tr><th scope="row">Exclusive above-grade area</th><td>'+fmtA(snapshot.area.exclusiveFt2)+' ft\u00b2</td></tr>');
+      var reportHtml = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Load Calculation Report</title>
+  <style>
+    body { font-family: "Segoe UI", Arial, sans-serif; margin: 0; padding: 32px; color: #000; background: #fff; }
+    h1 { margin: 0 0 0.6rem; font-size: 1.7rem; letter-spacing: 0.02em; }
+    .meta { margin-bottom: 1.5rem; }
+    .meta-item { margin-bottom: 0.35rem; }
+    .meta-label { font-weight: 600; display: inline-block; min-width: 160px; }
+    .report-section { margin-bottom: 1.8rem; }
+    .section-title { font-size: 1.05rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 0.6rem; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { border: 1px solid #000; padding: 0.45rem 0.6rem; font-size: 0.94rem; text-align: left; vertical-align: top; }
+    th { background: #f2f2f2; font-weight: 600; }
+    .totals-table th { width: 60%; }
+    .totals-highlight { font-weight: 700; }
+    .notes { font-size: 0.85rem; color: #333; margin-top: 0.6rem; }
+    /* Toolbar styling and hide rules */
+    #report-toolbar { display: block; }
+    @media print {
+      /* Hide the toolbar when printing */
+      #report-toolbar { display: none !important; }
+    }
+    @media print {
+      body { padding: 0.75in; }
+      table { page-break-inside: avoid; }
+    }
+  </style>
+</head>
+<body>
+  <h1>Load Calculation Report</h1>
+  <div class="meta">
+    <div class="meta-item"><span class="meta-label">Inspection date:</span><span>${escapeHtml(inspectionDisplay)}</span></div>
+    <div class="meta-item"><span class="meta-label">Policy:</span><span>${policyDisplay}</span></div>
+  </div>
 
-      var groundDims = (snapshot.area.groundUpperLength && snapshot.area.groundUpperWidth) ? (snapshot.area.groundUpperLength+' x '+snapshot.area.groundUpperWidth+' ft') : null;
-      if(groundDims) areaRows.push('<tr><th scope="row">Ground & upper dimensions</th><td>'+escapeHtml(groundDims)+'</td></tr>');
-      var basementDims = (snapshot.area.basementLength && snapshot.area.basementWidth) ? (snapshot.area.basementLength+' x '+snapshot.area.basementWidth+' ft') : null;
-      if(basementDims) areaRows.push('<tr><th scope="row">Basement dimensions</th><td>'+escapeHtml(basementDims)+'</td></tr>');
+  <section class="report-section">
+    <div class="section-title">Area Summary</div>
+    <table>
+      <thead><tr><th scope="col">Item</th><th scope="col">Value</th></tr></thead>
+      <tbody>
+        ${areaRows.join('\n        ')}
+      </tbody>
+    </table>
+  </section>
 
-      var spaceHeatRows = '';
-      if(state.spaceHeat.length){ for(var i=0;i<state.spaceHeat.length;i++){ var itm=state.spaceHeat[i]; var det = itm.type==='amps' ? (fmtA(itm.amps)+' A @ '+fmtA(itm.voltage)+' V ('+fmtW(itm.watts)+' W)') : (fmtW(itm.watts)+' W'); spaceHeatRows += '<tr><td>'+ (i+1) +'. '+ escapeHtml(itm.label) +'</td><td>'+ escapeHtml(det) +'</td></tr>'; } } else { spaceHeatRows = '<tr><td colspan="2">No space heating loads recorded.</td></tr>'; }
-      var airRows=''; if(state.airCond.length){ for(var j=0;j<state.airCond.length;j++){ var it=state.airCond[j]; var det2 = it.type==='amps' ? (fmtA(it.amps)+' A @ '+fmtA(it.voltage)+' V ('+fmtW(it.watts)+' W)') : (fmtW(it.watts)+' W'); airRows += '<tr><td>'+ (j+1) +'. '+ escapeHtml(it.label) +'</td><td>'+ escapeHtml(det2) +'</td></tr>'; } } else { airRows = '<tr><td colspan="2">No air conditioning loads recorded.</td></tr>'; }
-      var rangeRows=''; if(state.ranges.length){ for(var r=0;r<state.ranges.length;r++){ var ri=state.ranges[r]; rangeRows += '<tr><td>'+ (r+1) +'. '+ escapeHtml(ri.label) +'</td><td>'+ ri.count + ' x ' + fmtW(ri.watts) + ' W nameplate</td></tr>'; } } else { rangeRows = '<tr><td colspan="2">No cooking ranges recorded.</td></tr>'; }
+  <section class="report-section">
+    <div class="section-title">Space Heating Loads</div>
+    <table>
+      <thead><tr><th scope="col">Entry</th><th scope="col">Details</th></tr></thead>
+      <tbody>
+        ${spaceHeatRows}
+      </tbody>
+    </table>
+  </section>
 
-      var reportWin = window.open('','_blank'); if(!reportWin){ alert('Please allow pop-ups to view the report.'); return; }
-      var reportHtml = '<!doctype html><html><head><meta charset="utf-8"><title>Load Calculation Report</title></head><body><h1>Load Calculation Report</h1><p>Inspection: '+ escapeHtml(inspectionDisplay) +'</p><p>Policy: '+ policyDisplay +'</p><table>' + areaRows.join('') + '</table><h2>Space heating</h2><table>' + spaceHeatRows + '</table><h2>Air conditioning</h2><table>' + airRows + '</table><h2>Ranges</h2><table>' + rangeRows + '</table></body></html>';
-      reportWin.document.open(); reportWin.document.write(reportHtml); reportWin.document.close(); reportWin.focus();
+  <section class="report-section">
+    <div class="section-title">Air Conditioning Loads</div>
+    <table>
+      <thead><tr><th scope="col">Entry</th><th scope="col">Details</th></tr></thead>
+      <tbody>
+        ${airRows}
+      </tbody>
+    </table>
+  </section>
+
+  <section class="report-section">
+    <div class="section-title">Cooking Ranges</div>
+    <table>
+      <thead><tr><th scope="col">Entry</th><th scope="col">Details</th></tr></thead>
+      <tbody>
+        ${rangeRows}
+      </tbody>
+    </table>
+  </section>
+
+  <section class="report-section">
+    <div class="section-title">Water Heating</div>
+    <table>
+      <thead><tr><th scope="col">Item</th><th scope="col">Details</th></tr></thead>
+      <tbody>
+        ${tanklessRow || ''}
+        ${storageRow || ''}
+        ${specialWaterRows}
+      </tbody>
+    </table>
+  </section>
+
+  <section class="report-section">
+    <div class="section-title">Other Fixed Appliances ≥ 1500 W</div>
+    <table>
+      <thead><tr><th scope="col">Entry</th><th scope="col">Nameplate</th></tr></thead>
+      <tbody>
+        ${appliancesRows}
+      </tbody>
+    </table>
+  </section>
+
+  <section class="report-section">
+    <div class="section-title">Electric Vehicle Charging</div>
+    <table>
+      <thead><tr><th scope="col">Detail</th><th scope="col">Value</th></tr></thead>
+      <tbody>
+        <tr><td>Chargers installed</td><td>${snapshot.loads.evseCount}</td></tr>
+        <tr><td>Per charger rating</td><td>${fmtW(snapshot.loads.evseWatts)} W</td></tr>
+        <tr><td>Energy management (EVEMS)</td><td>${evemsLabel}</td></tr>
+        <tr><td>Demand included</td><td>${fmtW(snapshot.loads.evseDemandW)} W</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="report-section">
+    <div class="section-title">Demand Summary</div>
+    <table class="totals-table">
+      <thead><tr><th scope="col">Component</th><th scope="col">Demand (W)</th></tr></thead>
+      <tbody>
+        <tr><td>Basic load from area</td><td>${fmtW(snapshot.loads.basic)}</td></tr>
+        <tr><td>Space heating demand</td><td>${fmtW(snapshot.loads.spaceHeatDemandW)}</td></tr>
+        <tr><td>Air conditioning demand</td><td>${fmtW(snapshot.loads.airCondDemandW)}</td></tr>
+        <tr><td>Space conditioning total (${snapshot.loads.interlock ? 'interlocked (max of heat / AC)' : 'heat + AC'})</td><td>${fmtW(snapshot.loads.spaceConditioningW)}</td></tr>
+        <tr><td>Cooking ranges demand</td><td>${fmtW(snapshot.loads.rangesDemandW)}</td></tr>
+        <tr><td>Tankless water heaters</td><td>${fmtW(snapshot.loads.tanklessWatts)}</td></tr>
+        <tr><td>Dedicated spa / pool heaters</td><td>${fmtW(snapshot.loads.specialDedicatedW)}</td></tr>
+        <tr><td>Electric vehicle charging</td><td>${fmtW(snapshot.loads.evseDemandW)}</td></tr>
+        <tr><td>Other fixed appliances (incl. storage WH)</td><td>${fmtW(snapshot.loads.otherDemandW)}</td></tr>
+        <tr><td>Path A total</td><td class="totals-highlight">${fmtW(snapshot.results.pathA)}</td></tr>
+        <tr><td>Path B (fixed minimum)</td><td>${fmtW(snapshot.results.pathB)}</td></tr>
+        <tr><td>Calculated load (greater of Path A or B)</td><td class="totals-highlight">${fmtW(snapshot.results.calcLoad)}</td></tr>
+        <tr><td>Minimum service / feeder current</td><td class="totals-highlight">${fmtA(snapshot.results.amps)} A @ ${snapshot.results.voltage} V</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <div class="notes">
+    Report generated on ${escapeHtml(new Date().toLocaleString())}.
+  </div>
+
+  <div style="margin-top:12px;">
+    <div id="report-toolbar" style="margin-bottom:12px;">
+      <button id="downloadPdf" style="margin-right:8px;padding:6px 10px">Download PDF</button>
+      <button id="printBtn" style="margin-right:8px;padding:6px 10px">Print</button>
+      <button id="closeBtn" style="padding:6px 10px">Close</button>
+      <span id="reportStatus" style="margin-left:12px;font-size:.95rem;color:#333"></span>
+    </div>
+  </div>
+
+</body>
+<script>
+  (function(){
+    // Embedded form values for filename construction
+    var policyRaw = ${JSON.stringify(policyValue)};
+    var inspectionRaw = ${JSON.stringify(inspectionValue)};
+
+  function safeForFilename(s){ if(!s) return ''; return String(s).normalize('NFKC').trim().replace(/[\s\/\\:]+/g,'_').replace(/[^A-Za-z0-9_.-]/g,''); }
+    function inspectionDateForFile(raw){ if(!raw) return 'NoDate'; try{ var parts = raw.split('-'); if(parts.length===3){ var y=parseInt(parts[0],10), m=parseInt(parts[1],10), d=parseInt(parts[2],10); var dt=new Date(y,m-1,d); if(!isNaN(dt.getTime())) return dt.toISOString().slice(0,10); } }catch(e){} return safeForFilename(raw) || 'NoDate'; }
+
+    var inspectionDatePart = inspectionDateForFile(inspectionRaw);
+    var policyPart = safeForFilename(policyRaw) || 'Report';
+    var filename = policyPart + ' - Load Test - ' + inspectionDatePart + '.pdf';
+
+    var statusEl = document.getElementById('reportStatus');
+    function setStatus(s){ if(statusEl) statusEl.textContent = s; }
+
+    function loadHtml2Pdf(callback){
+      if(window.html2pdf){ callback(null); return; }
+      var s = document.createElement('script');
+      s.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.2/html2pdf.bundle.min.js';
+      s.onload = function(){ callback(null); };
+      s.onerror = function(){ callback(new Error('failed to load html2pdf')); };
+      document.head.appendChild(s);
+    }
+
+    function doDownload(){
+      setStatus('Preparing PDF...');
+      var toolbar = document.getElementById('report-toolbar');
+      var prevDisplay = null;
+      if(toolbar){ prevDisplay = toolbar.style.display; toolbar.style.display = 'none'; }
+      loadHtml2Pdf(function(err){
+        if(err){ console.warn('html2pdf load failed', err); if(toolbar) toolbar.style.display = prevDisplay || ''; setStatus('Could not load PDF library; opening print dialog.'); window.print(); return; }
+        try{
+          html2pdf().set({ filename: filename, pagebreak: { mode: 'css' } }).from(document.body).save().then(function(){
+            setStatus('Download started');
+            if(toolbar) toolbar.style.display = prevDisplay || '';
+          }).catch(function(err){
+            console.warn('html2pdf failed', err);
+            if(toolbar) toolbar.style.display = prevDisplay || '';
+            setStatus('PDF generation failed; opening print dialog.');
+            window.print();
+          });
+        }catch(e){ console.warn(e); if(toolbar) toolbar.style.display = prevDisplay || ''; setStatus('PDF generation error; opening print dialog.'); window.print(); }
+      });
+    }
+
+    document.getElementById('downloadPdf').addEventListener('click', function(){ doDownload(); });
+    document.getElementById('printBtn').addEventListener('click', function(){ setStatus('Opening print dialog...'); setTimeout(function(){ window.print(); }, 50); });
+    document.getElementById('closeBtn').addEventListener('click', function(){ try{ window.close(); }catch(e){ /* ignore */ } });
+
+    // Try to pre-load the library to reduce delay when user clicks download
+    loadHtml2Pdf(function(err){ if(err) setStatus('PDF library not available (will use print).'); else setStatus('PDF library ready — click Download PDF.'); });
+  })();
+</script>
+</html>`;
+
+      reportWindow.document.open();
+      reportWindow.document.write(reportHtml);
+      reportWindow.document.close();
+      reportWindow.focus();
+
     }
 
     (function init(){
@@ -165,6 +416,8 @@
         updateSpaceHeatInputMode();
         updateAirCondInputMode();
         renderAllLists();
+        // Initialize the sticky Watts calculator
+        try{ setupWattsCalc(); }catch(e){ /* ignore if elements missing */ }
         calculate();
       }
       if(document.readyState === 'loading'){

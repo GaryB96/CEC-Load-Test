@@ -491,3 +491,18 @@ select option:checked {
 .meta-field input {
   width: 100%;
 }
+
+/* Sticky calculator styles */
+.sticky-calc {
+  position: sticky;
+  top: 12px;
+  z-index: 40;
+}
+
+@media (max-width: 900px){
+  .sticky-calc { position: -webkit-sticky; top: 8px; }
+}
+
+/* Make the calc controls behave like other inputs (flexible width) */
+#wattsCalcCard .row > select, #wattsCalcCard .row > input { max-width: 260px; min-width: 180px; flex: 1 1 220px; }
+#wattsCalcCard .fixed-value { background: rgba(255,255,255,0.06); color: #fff; min-width: 110px; text-align: right; }
