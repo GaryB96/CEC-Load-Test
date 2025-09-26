@@ -1,1209 +1,136 @@
-// CEC Section 8 single-dwelling calculator (CSA C22.1:24) - v3
-
-// Adds explicit basement handling per 8-110 (75% of basement >= 1.8 m) and auto-computed living area.
+// CEC Section 8 single-dwelling calculator - cleaned, single IIFE
 
 (function(){
 
-  const $ = (id) => document.getElementById(id);
+  function $(id){ return document.getElementById(id); }
 
-  const fmtW = (n) => new Intl.NumberFormat().format(Math.round(n));
+  function fmtW(n){ return new Intl.NumberFormat().format(Math.round(n)); }
+  function fmtA(n){ return new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 }).format(n); }
 
-  const fmtA = (n) => new Intl.NumberFormat(undefined, {maximumFractionDigits: 1}).format(n);
+  function escapeHtml(input){ if(input === null || input === undefined) return ''; return String(input).replace(/[&<>"']/g, function(ch){ return ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":"&#39;" })[ch]; }); }
 
-  const escapeHtml = (input) => {
-    if(input === null || input === undefined){ return ''; }
-    return String(input).replace(/[&<>"']/g, (char) => ({
-      '&': '&amp;',
-      '<': '&lt;',
-      '>': '&gt;',
-      '"': '&quot;',
-      "'": '&#39;'
-    })[char]);
-  };
+  // CEC Section 8 single-dwelling calculator
+  // Clean, single IIFE. Live auto-fill disabled: area inputs only change when the user clicks "Add section".
 
-  const SQFT_PER_SQM = 10.763910416709722;
+  (function(){
+    'use strict';
 
-  const state = { appliances: [], spaceHeat: [], airCond: [], ranges: [], specialWater: [] };
+    function $(id){ return document.getElementById(id); }
 
-  const dimensionGroups = {};
+    function fmtW(n){ return new Intl.NumberFormat().format(Math.round(n)); }
+    function fmtA(n){ return new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 }).format(n); }
 
-  let lastCalcSnapshot = null;
+    function escapeHtml(input){ if(input === null || input === undefined) return ''; return String(input).replace(/[&<>"']/g, function(ch){ return ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":"&#39;" })[ch]; }); }
 
-  function renderSpaceHeatList(){
+    var SQFT_PER_SQM = 10.763910416709722;
+    var state = { appliances: [], spaceHeat: [], airCond: [], ranges: [], specialWater: [] };
+    var lastCalcSnapshot = null;
 
-    const host = $("spaceHeatList");
+    function renderList(hostId, items, formatItem){ var host=$(hostId); if(!host) return; host.innerHTML=''; items.forEach(function(it, idx){ var row=document.createElement('div'); row.className='item'; var name=document.createElement('div'); name.textContent = formatItem.title(it); var val=document.createElement('div'); val.className='mono'; val.textContent = formatItem.value(it); var kill=document.createElement('button'); kill.className='kill'; kill.textContent='Remove'; kill.addEventListener('click', function(){ formatItem.remove(idx); renderAllLists(); calculate(); }); row.appendChild(name); row.appendChild(val); row.appendChild(kill); host.appendChild(row); }); }
 
-    if(!host){ return; }
+    function renderAllLists(){ renderList('spaceHeatList', state.spaceHeat, { title: function(i){ return i.label; }, value: function(i){ return i.type==='amps'? (fmtA(i.amps)+' A @ '+fmtA(i.voltage)+' V ('+fmtW(i.watts)+' W)') : (fmtW(i.watts)+' W'); }, remove: function(idx){ state.spaceHeat.splice(idx,1); } }); renderList('airCondList', state.airCond, { title: function(i){ return i.label; }, value: function(i){ return i.type==='amps'? (fmtA(i.amps)+' A @ '+fmtA(i.voltage)+' V ('+fmtW(i.watts)+' W)') : (fmtW(i.watts)+' W'); }, remove: function(idx){ state.airCond.splice(idx,1); } }); renderList('rangeList', state.ranges, { title: function(i){ return i.label; }, value: function(i){ return i.count + ' x ' + fmtW(i.watts) + ' W'; }, remove: function(idx){ state.ranges.splice(idx,1); } }); renderList('specialWaterList', state.specialWater, { title: function(i){ return i.name; }, value: function(i){ return fmtW(i.watts) + ' W'; }, remove: function(idx){ state.specialWater.splice(idx,1); } }); renderList('applianceList', state.appliances, { title: function(i){ return i.name; }, value: function(i){ return fmtW(i.watts) + ' W'; }, remove: function(idx){ state.appliances.splice(idx,1); } }); }
 
-    host.innerHTML = "";
+    function updateSpaceHeatInputMode(){ var t=$('spaceHeatType'), v=$('spaceHeatValue'), u=$('spaceHeatVoltage'); if(!t||!v||!u) return; if(t.value==='amps'){ u.style.display=''; u.disabled=false; v.placeholder='Amps'; } else { u.style.display='none'; u.disabled=true; v.placeholder='Watts'; } }
+    function updateAirCondInputMode(){ var t=$('airCondType'), v=$('airCondValue'), u=$('airCondVoltage'); if(!t||!v||!u) return; if(t.value==='amps'){ u.style.display=''; u.disabled=false; v.placeholder='Amps'; } else { u.style.display='none'; u.disabled=true; v.placeholder='Watts'; } }
 
-    state.spaceHeat.forEach((item, idx) => {
+    function addSpaceHeat(){ var n=$('spaceHeatName'), t=$('spaceHeatType'), v=$('spaceHeatValue'), u=$('spaceHeatVoltage'); if(!t||!v) return; var label = n? n.value.trim() : ''; var type = t.value; var value = parseFloat(v.value); if(isNaN(value) || value<=0) return; var watts=0, amps=null, voltage=null; if(type==='amps'){ var raw = u?parseFloat(u.value):NaN; if(isNaN(raw)||raw<=0) return; amps = value; voltage = raw; watts = amps*voltage; } else watts = value; state.spaceHeat.push({ label: label || (type==='amps'?'Heating load (A)':'Heating load (W)'), type: type, watts: Math.round(watts), amps: type==='amps'?amps:null, voltage: type==='amps'?voltage:null }); if(n) n.value=''; v.value=''; renderAllLists(); calculate(); }
 
-      const row = document.createElement("div");
-      row.className = "item";
+    function addAirCond(){ var n=$('airCondName'), t=$('airCondType'), v=$('airCondValue'), u=$('airCondVoltage'); if(!t||!v) return; var label = n? n.value.trim() : ''; var type = t.value; var value = parseFloat(v.value); if(isNaN(value)||value<=0) return; var watts=0, amps=null, voltage=null; if(type==='amps'){ var raw = u?parseFloat(u.value):NaN; if(isNaN(raw)||raw<=0) return; amps = value; voltage = raw; watts = amps*voltage; } else watts = value; state.airCond.push({ label: label || (type==='amps'?'Cooling load (A)':'Cooling load (W)'), type: type, watts: Math.round(watts), amps: type==='amps'?amps:null, voltage: type==='amps'?voltage:null }); if(n) n.value=''; v.value=''; renderAllLists(); calculate(); }
 
-      const name = document.createElement("div");
-      name.textContent = item.label;
+    function addRange(){ var n=$('rangeName'), c=$('rangeCount'), w=$('rangeWatts'); if(!c||!w) return; var label = n? n.value.trim() : ''; var count = parseInt(c.value||'0',10); var watts = parseFloat(w.value); if(isNaN(count)||count<=0) return; if(isNaN(watts)||watts<=0) return; state.ranges.push({ label: label||'Range', count: count, watts: Math.round(watts) }); if(n) n.value=''; if(c) c.value = c.defaultValue || '1'; if(w) w.value = w.defaultValue || ''; renderAllLists(); calculate(); }
 
-      const val = document.createElement("div");
-      val.className = "mono";
-      val.textContent = item.type === "amps"
-        ? `${fmtA(item.amps)} A @ ${fmtA(item.voltage)} V (${fmtW(item.watts)} W)`
-        : `${fmtW(item.watts)} W`;
+    function addSpecialWater(){ var n=$('specialWaterName'), w=$('specialWaterWatts'); if(!w) return; var label = n? n.value.trim() : ''; var watts = parseFloat(w.value); if(isNaN(watts)||watts<=0) return; state.specialWater.push({ name: label||'Dedicated heater', watts: Math.round(watts) }); if(n) n.value=''; w.value=''; renderAllLists(); calculate(); }
 
-      const kill = document.createElement("button");
-      kill.className = "kill";
-      kill.textContent = "Remove";
-      kill.addEventListener("click", () => {
-        state.spaceHeat.splice(idx,1);
-        renderSpaceHeatList();
-        calculate();
-      });
+    function addAppliance(){ var n=$('applianceName'), w=$('applianceWatts'); if(!n||!w) return; var name = n.value.trim(); var watts = parseFloat(w.value); if(!name||isNaN(watts)||watts<=0) return; state.appliances.push({ name: name, watts: Math.round(watts) }); n.value=''; w.value=''; renderAllLists(); calculate(); }
 
-      row.appendChild(name);
-      row.appendChild(val);
-      row.appendChild(kill);
-      host.appendChild(row);
+    function setupCollapsibles(){ var sections=document.querySelectorAll('fieldset.collapsible'); Array.prototype.forEach.call(sections, function(fieldset){ var toggle=fieldset.querySelector('.collapse-toggle'); var body=fieldset.querySelector('.collapse-body'); if(!toggle||!body) return; var expanded = toggle.getAttribute('aria-expanded') !== 'false'; if(!expanded){ fieldset.classList.add('collapsed'); body.hidden = true; } toggle.addEventListener('click', function(){ var isCollapsed = fieldset.classList.toggle('collapsed'); var expandedNow = !isCollapsed; toggle.setAttribute('aria-expanded', expandedNow ? 'true' : 'false'); body.hidden = !expandedNow; }); }); }
 
-    });
+    // Live auto-fill intentionally disabled.
+    function setupAreaDimensions(){ /* no-op */ }
 
-  }
-
-  function updateSpaceHeatInputMode(){
-
-    const typeEl = $("spaceHeatType");
-    const valueEl = $("spaceHeatValue");
-    const voltageEl = $("spaceHeatVoltage");
-
-    if(!typeEl || !valueEl || !voltageEl){ return; }
-
-    const type = typeEl.value;
-
-    if(type === "amps"){
-      voltageEl.style.display = "";
-      voltageEl.disabled = false;
-      valueEl.placeholder = "Amps";
-    } else {
-      voltageEl.style.display = "none";
-      voltageEl.disabled = true;
-      valueEl.placeholder = "Watts";
-    }
-
-  }
-
-  function addSpaceHeat(){
-
-    const nameEl = $("spaceHeatName");
-    const typeEl = $("spaceHeatType");
-    const valueEl = $("spaceHeatValue");
-    const voltageEl = $("spaceHeatVoltage");
-
-    if(!typeEl || !valueEl){ return; }
-
-    const label = nameEl ? nameEl.value.trim() : "";
-    const type = typeEl.value;
-    const value = parseFloat(valueEl.value);
-
-    if(isNaN(value) || value <= 0){ return; }
-
-    let watts = 0;
-    let amps = null;
-    let voltage = null;
-
-    if(type === "amps"){
-      const rawVoltage = voltageEl ? parseFloat(voltageEl.value) : NaN;
-      if(isNaN(rawVoltage) || rawVoltage <= 0){ return; }
-      amps = value;
-      voltage = rawVoltage;
-      watts = amps * voltage;
-    } else {
-      watts = value;
-    }
-
-    const item = {
-      label: label || (type === "amps" ? "Heating load (A)" : "Heating load (W)"),
-      type,
-      watts: Math.round(watts),
-      amps: type === "amps" ? amps : null,
-      voltage: type === "amps" ? voltage : null
-    };
-
-    state.spaceHeat.push(item);
-
-    if(nameEl){ nameEl.value = ""; }
-    valueEl.value = "";
-
-    renderSpaceHeatList();
-    calculate();
-
-  }
-
-  function renderAirCondList(){
-
-    const host = $("airCondList");
-
-    if(!host){ return; }
-
-    host.innerHTML = "";
-
-    state.airCond.forEach((item, idx) => {
-
-      const row = document.createElement("div");
-      row.className = "item";
-
-      const name = document.createElement("div");
-      name.textContent = item.label;
-
-      const val = document.createElement("div");
-      val.className = "mono";
-      val.textContent = item.type === "amps"
-        ? `${fmtA(item.amps)} A @ ${fmtA(item.voltage)} V (${fmtW(item.watts)} W)`
-        : `${fmtW(item.watts)} W`;
-
-      const kill = document.createElement("button");
-      kill.className = "kill";
-      kill.textContent = "Remove";
-      kill.addEventListener("click", () => {
-        state.airCond.splice(idx,1);
-        renderAirCondList();
-        calculate();
-      });
-
-      row.appendChild(name);
-      row.appendChild(val);
-      row.appendChild(kill);
-      host.appendChild(row);
-
-    });
-
-  }
-
-  function updateAirCondInputMode(){
-
-    const typeEl = $("airCondType");
-    const valueEl = $("airCondValue");
-    const voltageEl = $("airCondVoltage");
-
-    if(!typeEl || !valueEl || !voltageEl){ return; }
-
-    const type = typeEl.value;
-
-    if(type === "amps"){
-      voltageEl.style.display = "";
-      voltageEl.disabled = false;
-      valueEl.placeholder = "Amps";
-    } else {
-      voltageEl.style.display = "none";
-      voltageEl.disabled = true;
-      valueEl.placeholder = "Watts";
-    }
-
-  }
-
-  function addAirCond(){
-
-    const nameEl = $("airCondName");
-    const typeEl = $("airCondType");
-    const valueEl = $("airCondValue");
-    const voltageEl = $("airCondVoltage");
-
-    if(!typeEl || !valueEl){ return; }
-
-    const label = nameEl ? nameEl.value.trim() : "";
-    const type = typeEl.value;
-    const value = parseFloat(valueEl.value);
-
-    if(isNaN(value) || value <= 0){ return; }
-
-    let watts = 0;
-    let amps = null;
-    let voltage = null;
-
-    if(type === "amps"){
-      const rawVoltage = voltageEl ? parseFloat(voltageEl.value) : NaN;
-      if(isNaN(rawVoltage) || rawVoltage <= 0){ return; }
-      amps = value;
-      voltage = rawVoltage;
-      watts = amps * voltage;
-    } else {
-      watts = value;
-    }
-
-    const item = {
-      label: label || (type === "amps" ? "Cooling load (A)" : "Cooling load (W)"),
-      type,
-      watts: Math.round(watts),
-      amps: type === "amps" ? amps : null,
-      voltage: type === "amps" ? voltage : null
-    };
-
-    state.airCond.push(item);
-
-    if(nameEl){ nameEl.value = ""; }
-    valueEl.value = "";
-
-    renderAirCondList();
-    calculate();
-
-  }
-
-  function renderRangeList(){
-
-    const host = $("rangeList");
-
-    if(!host){ return; }
-
-    host.innerHTML = "";
-
-    state.ranges.forEach((item, idx) => {
-
-      const row = document.createElement("div");
-      row.className = "item";
-
-      const name = document.createElement("div");
-      name.textContent = item.label;
-
-      const val = document.createElement("div");
-      val.className = "mono";
-      val.textContent = `${item.count} x ${fmtW(item.watts)} W`;
-
-      const kill = document.createElement("button");
-      kill.className = "kill";
-      kill.textContent = "Remove";
-      kill.addEventListener("click", () => {
-        state.ranges.splice(idx,1);
-        renderRangeList();
-        calculate();
-      });
-
-      row.appendChild(name);
-      row.appendChild(val);
-      row.appendChild(kill);
-      host.appendChild(row);
-
-    });
-
-  }
-
-  function addRange(){
-
-    const nameEl = $("rangeName");
-    const countEl = $("rangeCount");
-    const wattsEl = $("rangeWatts");
-
-    if(!countEl || !wattsEl){ return; }
-
-    const label = nameEl ? nameEl.value.trim() : "";
-    const count = parseInt(countEl.value || "0", 10);
-    const watts = parseFloat(wattsEl.value);
-
-    if(isNaN(count) || count <= 0){ return; }
-    if(isNaN(watts) || watts <= 0){ return; }
-
-    const item = {
-      label: label || "Range",
-      count,
-      watts: Math.round(watts)
-    };
-
-    state.ranges.push(item);
-
-    if(nameEl){ nameEl.value = ""; }
-    if(countEl){ countEl.value = countEl.defaultValue || "1"; }
-    if(wattsEl){ wattsEl.value = wattsEl.defaultValue || ""; }
-
-    renderRangeList();
-    calculate();
-
-  }
-
-  function renderSpecialWaterList(){
-
-    const host = $("specialWaterList");
-
-    if(!host){ return; }
-
-    host.innerHTML = "";
-
-    state.specialWater.forEach((item, idx) => {
-
-      const row = document.createElement("div");
-      row.className = "item";
-
-      const name = document.createElement("div");
-      name.textContent = item.name;
-
-      const val = document.createElement("div");
-      val.className = "mono";
-      val.textContent = `${fmtW(item.watts)} W`;
-
-      const kill = document.createElement("button");
-      kill.className = "kill";
-      kill.textContent = "Remove";
-      kill.addEventListener("click", () => {
-        state.specialWater.splice(idx,1);
-        renderSpecialWaterList();
-        calculate();
-      });
-
-      row.appendChild(name);
-      row.appendChild(val);
-      row.appendChild(kill);
-      host.appendChild(row);
-
-    });
-
-  }
-
-  function addSpecialWater(){
-
-    const nameEl = $("specialWaterName");
-    const wattsEl = $("specialWaterWatts");
-
-    if(!wattsEl){ return; }
-
-    const label = nameEl ? nameEl.value.trim() : "";
-    const watts = parseFloat(wattsEl.value);
-
-    if(isNaN(watts) || watts <= 0){ return; }
-
-    state.specialWater.push({
-      name: label || "Dedicated heater",
-      watts: Math.round(watts)
-    });
-
-    if(nameEl){ nameEl.value = ""; }
-    wattsEl.value = "";
-
-    renderSpecialWaterList();
-    calculate();
-
-  }
-
-  function renderApplianceList(){
-
-    const host = $("applianceList");
-
-    if(!host){ return; }
-
-    host.innerHTML = "";
-
-    state.appliances.forEach((item, idx) => {
-
-      const row = document.createElement("div");
-      row.className = "item";
-
-      const name = document.createElement("div");
-      name.textContent = item.name;
-
-      const val = document.createElement("div");
-      val.className = "mono";
-      val.textContent = `${fmtW(item.watts)} W`;
-
-      const kill = document.createElement("button");
-      kill.className = "kill";
-      kill.textContent = "Remove";
-      kill.addEventListener("click", () => {
-        state.appliances.splice(idx,1);
-        renderApplianceList();
-        calculate();
-      });
-
-      row.appendChild(name);
-      row.appendChild(val);
-      row.appendChild(kill);
-      host.appendChild(row);
-
-    });
-
-  }
-
-  function addAppliance(){
-
-    const nameEl = $("applianceName");
-    const wattsEl = $("applianceWatts");
-
-    if(!nameEl || !wattsEl){ return; }
-
-    const name = nameEl.value.trim();
-    const watts = parseFloat(wattsEl.value);
-
-    if(!name || isNaN(watts) || watts <= 0){ return; }
-
-    state.appliances.push({ name, watts: Math.round(watts) });
-
-    nameEl.value = "";
-    wattsEl.value = "";
-
-    renderApplianceList();
-    calculate();
-
-  }
-
-  function setupCollapsibles(){
-
-    const sections = document.querySelectorAll("fieldset.collapsible");
-
-    sections.forEach((fieldset) => {
-
-      const toggle = fieldset.querySelector(".collapse-toggle");
-      const body = fieldset.querySelector(".collapse-body");
-
-      if(!toggle || !body){ return; }
-
-      const expanded = toggle.getAttribute("aria-expanded") !== "false";
-
-      if(!expanded){
-        fieldset.classList.add("collapsed");
-        body.hidden = true;
-      }
-
-      toggle.addEventListener("click", () => {
-
-        const isCollapsed = fieldset.classList.toggle("collapsed");
-        const expandedNow = !isCollapsed;
-        toggle.setAttribute("aria-expanded", expandedNow ? "true" : "false");
-        body.hidden = !expandedNow;
-
-      });
-
-    });
-
-  }
-
-  function setupAreaDimensions(){
-
-    const configs = [
-      { lengthId: "groundUpperLength", widthId: "groundUpperWidth", areaId: "groundUpperArea", displayId: "groundUpperCalc" },
-      { lengthId: "basementLength", widthId: "basementWidth", areaId: "basementArea", displayId: "basementCalc" }
-    ];
-
-    configs.forEach((cfg) => {
-      // If an 'Add section' button exists for this area, skip auto-fill setup
-      const addSectionBtnId = 'add' + cfg.lengthId.replace('Length','Dim');
-      if (document.getElementById(addSectionBtnId)) {
-        return;
-      }
-
-      const lengthEl = $(cfg.lengthId);
-      const widthEl = $(cfg.widthId);
-      const areaEl = $(cfg.areaId);
-      const displayEl = cfg.displayId ? $(cfg.displayId) : null;
-
-      if(!lengthEl || !widthEl || !areaEl){ return; }
-
-      let programmatic = false;
-      let originalArea = null;
-
-      const updateDisplay = (value) => {
-        if(!displayEl){ return; }
-        if(typeof value === 'number' && Number.isFinite(value) && value > 0){
-          displayEl.textContent = `${fmtA(value)} ft²`;
-        } else {
-          displayEl.textContent = '--';
-        }
-      };
-
-      const setAutoArea = (areaValue) => {
-        // On first dimension input, store the original area value
-        if (originalArea === null) {
-          const current = parseFloat(areaEl.value);
-          originalArea = Number.isFinite(current) && current > 0 ? current : 0;
-        }
-        const rounded = Math.round(originalArea + areaValue);
-        if(!Number.isFinite(rounded) || rounded <= 0){ return; }
-        programmatic = true;
-        areaEl.value = String(rounded);
-        areaEl.dataset.autofilled = "true";
-        updateDisplay(originalArea + areaValue);
-        areaEl.dispatchEvent(new Event("input", { bubbles: true }));
-        programmatic = false;
-      };
-
-      const clearAutoArea = () => {
-        programmatic = true;
-        areaEl.value = "";
-        areaEl.removeAttribute("data-autofilled");
-        updateDisplay(null);
-        areaEl.dispatchEvent(new Event("input", { bubbles: true }));
-        programmatic = false;
-        originalArea = null;
-      };
-
-      const updateFromDimensions = () => {
-        const length = parseFloat(lengthEl.value);
-        const width = parseFloat(widthEl.value);
-
-        if(Number.isFinite(length) && length > 0 && Number.isFinite(width) && width > 0){
-          setAutoArea(length * width);
-        } else if(areaEl.dataset.autofilled === "true"){
-          clearAutoArea();
-        } else {
-          const current = parseFloat(areaEl.value);
-          updateDisplay(Number.isFinite(current) && current > 0 ? current : null);
-          originalArea = null;
-        }
-      };
-
-      const handleAreaInput = () => {
-        if(!programmatic && areaEl.dataset.autofilled === "true"){
-          areaEl.removeAttribute("data-autofilled");
-        }
-        const value = parseFloat(areaEl.value);
-        updateDisplay(Number.isFinite(value) && value > 0 ? value : null);
-      };
-
-      // Disable live area auto-fill if 'Add section' button is present
-      if (!document.getElementById('add' + cfg.lengthId.replace('Length','Dim'))) {
-        lengthEl.addEventListener("input", updateFromDimensions);
-        widthEl.addEventListener("input", updateFromDimensions);
-      }
-      areaEl.addEventListener("input", handleAreaInput);
-
-      handleAreaInput();
-      updateFromDimensions();
-
-    });
-
-  }
-
-  function rangeDemand(rangeEntries){
-
-    if(!rangeEntries || rangeEntries.length === 0){ return 0; }
-
-    let total = 0;
-
-    rangeEntries.forEach((item) => {
-      const count = Math.max(0, item.count);
-      const rating = Math.max(0, item.watts);
-      if(count <= 0 || rating <= 0){ return; }
-      const over = Math.max(0, rating - 12000);
-      const perRange = 6000 + 0.40 * over; // per 8-200(1)(a)(iv)
-      total += count * perRange;
-    });
-
-    return total;
-
-  }
-
-  function otherLoadsDemandW(hasRange, appliancesW){
-
-    const totalW = appliancesW;
-
-    if(totalW <= 0) return 0;
-
-    if(hasRange){
-
-      return totalW * 0.25;
-
-    } else {
-
-      const first = Math.min(6000, totalW);
-
-      const rem = Math.max(0, totalW - 6000);
-
-      return first + rem * 0.25;
-
-    }
-
-  }
-
-  function computeAreas(){
-    const groundUpperFt2 = parseFloat($("groundUpperArea").value) || 0;
-    const basementFt2 = parseFloat($("basementArea").value) || 0;
-    const livingFt2 = groundUpperFt2 + 0.75 * basementFt2;
-    const exclusiveFt2 = groundUpperFt2;
-    const livingAreaDisplay = $("livingAreaDisplay");
-    if(livingAreaDisplay){ livingAreaDisplay.textContent = fmtA(livingFt2); }
-    const exclusiveAreaDisplay = $("exclusiveAreaDisplay");
-    if(exclusiveAreaDisplay){ exclusiveAreaDisplay.textContent = fmtA(exclusiveFt2); }
-    return {
-      groundUpperFt2,
-      basementFt2,
-      livingFt2,
-      exclusiveFt2,
-      livingSqM: livingFt2 / SQFT_PER_SQM,
-      exclusiveSqM: exclusiveFt2 / SQFT_PER_SQM
-    };
-  }
-
-  function calculate(){
-
-    const { livingSqM, exclusiveSqM, livingFt2, exclusiveFt2, groundUpperFt2, basementFt2 } = computeAreas();
-
-    const pickDimension = (id) => {
-      const el = $(id);
-      if(!el){ return null; }
-      const value = parseFloat(el.value);
-      return Number.isFinite(value) && value > 0 ? value : null;
-    };
-
-    const groundUpperLength = pickDimension("groundUpperLength");
-    const groundUpperWidth = pickDimension("groundUpperWidth");
-    const basementLength = pickDimension("basementLength");
-    const basementWidth = pickDimension("basementWidth");
-
-    const spaceHeatDemandW = state.spaceHeat.reduce((sum, item) => sum + item.watts, 0);
-    const acW = state.airCond.reduce((sum, item) => sum + item.watts, 0);
-
-    const interlock = $("interlock").value === "yes";
-    const totalRanges = state.ranges.reduce((sum, item) => sum + item.count, 0);
-
-    const tanklessWatts = parseFloat($("tanklessWatts").value) || 0;
-    const storageWHWatts = parseFloat($("storageWHWatts").value) || 0;
-
-    const specialDedicatedW = state.specialWater.reduce((sum, item) => sum + item.watts, 0);
-
-    const evseCount = parseInt($("evseCount").value || "0", 10);
-    const evseWatts = parseFloat($("evseWatts").value) || 0;
-    const evems = $("evems").value === "yes";
-
-    const voltage = 240;
-
-    let basic = 0;
-
-    if(livingSqM > 0){
-      basic = 5000;
-      const extra = Math.max(0, livingSqM - 90);
-      if(extra > 0){
-        const blocks = Math.ceil(extra / 90);
-        basic += blocks * 1000;
-      }
-    }
-
-    const heatW = spaceHeatDemandW;
-    const spaceCondW = interlock ? Math.max(heatW, acW) : (heatW + acW);
-
-    const rangesW = rangeDemand(state.ranges);
-    const specialWHW = tanklessWatts + specialDedicatedW;
-    const evseW = evems ? 0 : evseCount * evseWatts;
-
-    const manualAppliancesW = state.appliances.reduce((sum, item) => sum + item.watts, 0);
-    const appliancesW = manualAppliancesW + storageWHWatts;
-
-    const otherW = otherLoadsDemandW(totalRanges > 0, appliancesW);
-
-    const pathA = basic + spaceCondW + rangesW + specialWHW + evseW + otherW;
-    const pathB = (exclusiveSqM >= 80) ? 24000 : 14400;
-    const calcLoad = Math.max(pathA, pathB);
-    const amps = calcLoad / voltage;
-
-    $("pathA").textContent = fmtW(pathA);
-    $("pathB").textContent = fmtW(pathB);
-    $("calcLoad").textContent = fmtW(calcLoad);
-    $("minAmps").textContent = fmtA(amps);
-    $("voltsLabel").textContent = voltage;
-
-    lastCalcSnapshot = {
-      area: {
-        groundUpperFt2,
-        basementFt2,
-        livingFt2,
-        exclusiveFt2,
-        groundUpperLength,
-        groundUpperWidth,
-        basementLength,
-        basementWidth
-      },
-      loads: {
-        basic,
-        spaceHeatDemandW: heatW,
-        airCondDemandW: acW,
-        spaceConditioningW: spaceCondW,
-        interlock,
-        rangesDemandW: rangesW,
-        tanklessWatts,
-        specialDedicatedW,
-        specialTotalW: specialWHW,
-        storageWHWatts,
-        manualAppliancesW,
-        appliancesPoolW: appliancesW,
-        otherDemandW: otherW,
-        evseDemandW: evseW,
-        evseCount,
-        evseWatts,
-        evems,
-        totalRanges
-      },
-      results: {
-        pathA,
-        pathB,
-        calcLoad,
-        amps,
-        voltage
-      }
-    };
-
-  }
-
-  function formatInspectionDate(value){
-
-    if(!value){ return null; }
-
-    const parts = value.split('-');
-
-    if(parts.length !== 3){ return null; }
-
-    const year = parseInt(parts[0], 10);
-    const month = parseInt(parts[1], 10);
-    const day = parseInt(parts[2], 10);
-
-    if(!Number.isFinite(year) || !Number.isFinite(month) || !Number.isFinite(day)){ return null; }
-
-    const date = new Date(year, month - 1, day);
-
-    if(Number.isNaN(date.getTime())){ return null; }
-
-    return new Intl.DateTimeFormat(undefined, { year: 'numeric', month: 'long', day: 'numeric' }).format(date);
-
-  }
-
-  function generateReport(){
-
-    if(!lastCalcSnapshot){ calculate(); }
-
-    const snapshot = lastCalcSnapshot;
-
-    if(!snapshot){
-      alert('Please calculate the load before generating a report.');
-      return;
-    }
-
-    const inspectionEl = $("inspectionDate");
-    const policyEl = $("policyNumber");
-
-    const inspectionValue = inspectionEl ? inspectionEl.value : '';
-    const policyValue = policyEl ? policyEl.value.trim() : '';
-
-    const inspectionDisplay = formatInspectionDate(inspectionValue) || 'Not provided';
-    const policyDisplay = policyValue ? escapeHtml(policyValue) : 'Not provided';
-
-    const formatDimension = (value) => (typeof value === 'number' && Number.isFinite(value) && value > 0)
-      ? new Intl.NumberFormat(undefined, { maximumFractionDigits: 2 }).format(value)
-      : null;
-
-    const areaRows = [
-      `<tr><th scope="row">Ground & upper living area</th><td>${fmtA(snapshot.area.groundUpperFt2)} ft²</td></tr>`,
-      `<tr><th scope="row">Basement area (>= 5 ft 11 in)</th><td>${fmtA(snapshot.area.basementFt2)} ft²</td></tr>`,
-      `<tr><th scope="row">Living area (with 75% basement)</th><td>${fmtA(snapshot.area.livingFt2)} ft²</td></tr>`,
-      `<tr><th scope="row">Exclusive above-grade area</th><td>${fmtA(snapshot.area.exclusiveFt2)} ft²</td></tr>`
-    ];
-
-    const groundDims = formatDimension(snapshot.area.groundUpperLength) && formatDimension(snapshot.area.groundUpperWidth)
-      ? `${formatDimension(snapshot.area.groundUpperLength)} x ${formatDimension(snapshot.area.groundUpperWidth)} ft`
-      : null;
-
-    if(groundDims){
-      areaRows.push(`<tr><th scope="row">Ground & upper dimensions</th><td>${groundDims}</td></tr>`);
-    }
-
-    const basementDims = formatDimension(snapshot.area.basementLength) && formatDimension(snapshot.area.basementWidth)
-      ? `${formatDimension(snapshot.area.basementLength)} x ${formatDimension(snapshot.area.basementWidth)} ft`
-      : null;
-
-    if(basementDims){
-      areaRows.push(`<tr><th scope="row">Basement dimensions</th><td>${basementDims}</td></tr>`);
-    }
-
-    const spaceHeatRows = state.spaceHeat.length
-      ? state.spaceHeat.map((item, idx) => {
-          const detail = item.type === 'amps'
-            ? `${fmtA(item.amps)} A @ ${fmtA(item.voltage)} V (${fmtW(item.watts)} W)`
-            : `${fmtW(item.watts)} W`;
-          return `<tr><td>${idx + 1}. ${escapeHtml(item.label)}</td><td>${escapeHtml(detail)}</td></tr>`;
-        }).join('')
-      : '<tr><td colspan="2">No space heating loads recorded.</td></tr>';
-
-    const airRows = state.airCond.length
-      ? state.airCond.map((item, idx) => {
-          const detail = item.type === 'amps'
-            ? `${fmtA(item.amps)} A @ ${fmtA(item.voltage)} V (${fmtW(item.watts)} W)`
-            : `${fmtW(item.watts)} W`;
-          return `<tr><td>${idx + 1}. ${escapeHtml(item.label)}</td><td>${escapeHtml(detail)}</td></tr>`;
-        }).join('')
-      : '<tr><td colspan="2">No air conditioning loads recorded.</td></tr>';
-
-    const rangeRows = state.ranges.length
-      ? state.ranges.map((item, idx) => `<tr><td>${idx + 1}. ${escapeHtml(item.label)}</td><td>${item.count} x ${fmtW(item.watts)} W nameplate</td></tr>`).join('')
-      : '<tr><td colspan="2">No cooking ranges recorded.</td></tr>';
-
-    const specialWaterRows = state.specialWater.length
-      ? state.specialWater.map((item, idx) => `<tr><td>${idx + 1}. ${escapeHtml(item.name)}</td><td>${fmtW(item.watts)} W</td></tr>`).join('')
-      : '<tr><td colspan="2">No dedicated spa / pool heaters recorded.</td></tr>';
-
-    const appliancesRows = state.appliances.length
-      ? state.appliances.map((item, idx) => `<tr><td>${idx + 1}. ${escapeHtml(item.name)}</td><td>${fmtW(item.watts)} W</td></tr>`).join('')
-      : '<tr><td colspan="2">No additional fixed appliances recorded.</td></tr>';
-
-    const storageRow = snapshot.loads.storageWHWatts > 0
-      ? `<tr><td>Storage water heater</td><td>${fmtW(snapshot.loads.storageWHWatts)} W</td></tr>`
-      : '';
-
-    const tanklessRow = snapshot.loads.tanklessWatts > 0
-      ? `<tr><td>Tankless water heater</td><td>${fmtW(snapshot.loads.tanklessWatts)} W</td></tr>`
-      : '';
-
-    const evemsLabel = snapshot.loads.evems ? 'Yes (excluded per 8-106(11))' : 'No (included at 100%)';
-
-    const reportWindow = window.open('', '_blank');
-
-    if(!reportWindow){
-      alert('Please allow pop-ups to view the report.');
-      return;
-    }
-
-    const reportHtml = `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <title>Load Calculation Report</title>
-  <style>
-    body { font-family: "Segoe UI", Arial, sans-serif; margin: 0; padding: 32px; color: #000; background: #fff; }
-    h1 { margin: 0 0 0.6rem; font-size: 1.7rem; letter-spacing: 0.02em; }
-    .meta { margin-bottom: 1.5rem; }
-    .meta-item { margin-bottom: 0.35rem; }
-    .meta-label { font-weight: 600; display: inline-block; min-width: 160px; }
-    .report-section { margin-bottom: 1.8rem; }
-    .section-title { font-size: 1.05rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 0.6rem; }
-    table { width: 100%; border-collapse: collapse; }
-    th, td { border: 1px solid #000; padding: 0.45rem 0.6rem; font-size: 0.94rem; text-align: left; vertical-align: top; }
-    th { background: #f2f2f2; font-weight: 600; }
-    .totals-table th { width: 60%; }
-    .totals-highlight { font-weight: 700; }
-    .notes { font-size: 0.85rem; color: #333; margin-top: 0.6rem; }
-    @media print {
-      body { padding: 0.75in; }
-      table { page-break-inside: avoid; }
-    }
-  </style>
-</head>
-<body>
-  <h1>Load Calculation Report</h1>
-  <div class="meta">
-    <div class="meta-item"><span class="meta-label">Inspection date:</span><span>${escapeHtml(inspectionDisplay)}</span></div>
-    <div class="meta-item"><span class="meta-label">Policy:</span><span>${policyDisplay}</span></div>
-  </div>
-
-  <section class="report-section">
-    <div class="section-title">Area Summary</div>
-    <table>
-      <thead><tr><th scope="col">Item</th><th scope="col">Value</th></tr></thead>
-      <tbody>
-        ${areaRows.join('\n        ')}
-      </tbody>
-    </table>
-  </section>
-
-  <section class="report-section">
-    <div class="section-title">Space Heating Loads</div>
-    <table>
-      <thead><tr><th scope="col">Entry</th><th scope="col">Details</th></tr></thead>
-      <tbody>
-        ${spaceHeatRows}
-      </tbody>
-    </table>
-  </section>
-
-  <section class="report-section">
-    <div class="section-title">Air Conditioning Loads</div>
-    <table>
-      <thead><tr><th scope="col">Entry</th><th scope="col">Details</th></tr></thead>
-      <tbody>
-        ${airRows}
-      </tbody>
-    </table>
-  </section>
-
-  <section class="report-section">
-    <div class="section-title">Cooking Ranges</div>
-    <table>
-      <thead><tr><th scope="col">Entry</th><th scope="col">Details</th></tr></thead>
-      <tbody>
-        ${rangeRows}
-      </tbody>
-    </table>
-  </section>
-
-  <section class="report-section">
-    <div class="section-title">Water Heating</div>
-    <table>
-      <thead><tr><th scope="col">Item</th><th scope="col">Details</th></tr></thead>
-      <tbody>
-        ${tanklessRow || ''}
-        ${storageRow || ''}
-        ${specialWaterRows}
-      </tbody>
-    </table>
-  </section>
-
-  <section class="report-section">
-    <div class="section-title">Other Fixed Appliances ≥ 1500 W</div>
-    <table>
-      <thead><tr><th scope="col">Entry</th><th scope="col">Nameplate</th></tr></thead>
-      <tbody>
-        ${appliancesRows}
-      </tbody>
-    </table>
-  </section>
-
-  <section class="report-section">
-    <div class="section-title">Electric Vehicle Charging</div>
-    <table>
-      <thead><tr><th scope="col">Detail</th><th scope="col">Value</th></tr></thead>
-      <tbody>
-        <tr><td>Chargers installed</td><td>${snapshot.loads.evseCount}</td></tr>
-        <tr><td>Per charger rating</td><td>${fmtW(snapshot.loads.evseWatts)} W</td></tr>
-        <tr><td>Energy management (EVEMS)</td><td>${evemsLabel}</td></tr>
-        <tr><td>Demand included</td><td>${fmtW(snapshot.loads.evseDemandW)} W</td></tr>
-      </tbody>
-    </table>
-  </section>
-
-  <section class="report-section">
-    <div class="section-title">Demand Summary</div>
-    <table class="totals-table">
-      <thead><tr><th scope="col">Component</th><th scope="col">Demand (W)</th></tr></thead>
-      <tbody>
-        <tr><td>Basic load from area</td><td>${fmtW(snapshot.loads.basic)}</td></tr>
-        <tr><td>Space heating demand</td><td>${fmtW(snapshot.loads.spaceHeatDemandW)}</td></tr>
-        <tr><td>Air conditioning demand</td><td>${fmtW(snapshot.loads.airCondDemandW)}</td></tr>
-        <tr><td>Space conditioning total (${snapshot.loads.interlock ? 'interlocked (max of heat / AC)' : 'heat + AC'})</td><td>${fmtW(snapshot.loads.spaceConditioningW)}</td></tr>
-        <tr><td>Cooking ranges demand</td><td>${fmtW(snapshot.loads.rangesDemandW)}</td></tr>
-        <tr><td>Tankless water heaters</td><td>${fmtW(snapshot.loads.tanklessWatts)}</td></tr>
-        <tr><td>Dedicated spa / pool heaters</td><td>${fmtW(snapshot.loads.specialDedicatedW)}</td></tr>
-        <tr><td>Electric vehicle charging</td><td>${fmtW(snapshot.loads.evseDemandW)}</td></tr>
-        <tr><td>Other fixed appliances (incl. storage WH)</td><td>${fmtW(snapshot.loads.otherDemandW)}</td></tr>
-        <tr><td>Path A total</td><td class="totals-highlight">${fmtW(snapshot.results.pathA)}</td></tr>
-        <tr><td>Path B (fixed minimum)</td><td>${fmtW(snapshot.results.pathB)}</td></tr>
-        <tr><td>Calculated load (greater of Path A or B)</td><td class="totals-highlight">${fmtW(snapshot.results.calcLoad)}</td></tr>
-        <tr><td>Minimum service / feeder current</td><td class="totals-highlight">${fmtA(snapshot.results.amps)} A @ ${snapshot.results.voltage} V</td></tr>
-      </tbody>
-    </table>
-  </section>
-
-  <div class="notes">
-    Report generated on ${escapeHtml(new Date().toLocaleString())}.
-  </div>
-
-  <script>window.addEventListener('load', () => window.print());</script>
-</body>
-</html>`;
-
-    reportWindow.document.open();
-    reportWindow.document.write(reportHtml);
-    reportWindow.document.close();
-    reportWindow.focus();
-
-  }
-
-  const reportBtn = $("reportBtn");
-
-  if(reportBtn){
-
-    reportBtn.addEventListener("click", (evt) => {
-
-      evt.preventDefault();
-
-      generateReport();
-
-    });
-
-  }
-
-  const addSpaceHeatBtn = $("addSpaceHeat");
-
-  if(addSpaceHeatBtn){
-
-    addSpaceHeatBtn.addEventListener("click", (evt) => {
-
-      evt.preventDefault();
-
-      addSpaceHeat();
-
-    });
-
-  }
-
-  const spaceHeatTypeEl = $("spaceHeatType");
-
-  if(spaceHeatTypeEl){
-
-    spaceHeatTypeEl.addEventListener("change", updateSpaceHeatInputMode);
-
-  }
-
-  const addAirCondBtn = $("addAirCond");
-
-  if(addAirCondBtn){
-
-    addAirCondBtn.addEventListener("click", (evt) => {
-
-      evt.preventDefault();
-
-      addAirCond();
-
-    });
-
-  }
-
-  const airCondTypeEl = $("airCondType");
-
-  if(airCondTypeEl){
-
-    airCondTypeEl.addEventListener("change", updateAirCondInputMode);
-
-  }
-
-  const addRangeBtn = $("addRange");
-
-  if(addRangeBtn){
-
-    addRangeBtn.addEventListener("click", (evt) => {
-
-      evt.preventDefault();
-
-      addRange();
-
-    });
-
-  }
-
-  const addSpecialWaterBtn = $("addSpecialWater");
-
-  if(addSpecialWaterBtn){
-
-    addSpecialWaterBtn.addEventListener("click", (evt) => {
-
-      evt.preventDefault();
-
-      addSpecialWater();
-
-    });
-
-  }
-
-  const addApplianceBtn = $("addAppliance");
-
-  if(addApplianceBtn){
-
-    addApplianceBtn.addEventListener("click", addAppliance);
-
-  }
-
-
-  $("calcForm").addEventListener("input", (e) => {
-
-    const id = e.target && e.target.id;
-
-    const instant = [
-                     "groundUpperArea","basementArea","groundUpperLength","groundUpperWidth","basementLength","basementWidth",
-                     "spaceHeatName","spaceHeatType","spaceHeatValue","spaceHeatVoltage",
-                     "airCondName","airCondType","airCondValue","airCondVoltage",
-                     "rangeName","rangeCount","rangeWatts","interlock",
-                     "tanklessWatts","storageWHWatts",
-                     "evseCount","evseWatts","evems","applianceWatts","applianceName"
-                    ].includes(id);
-
-    if(instant){ calculate(); }
-
-    if(id === "spaceHeatType"){ updateSpaceHeatInputMode(); }
-
-    if(id === "airCondType"){ updateAirCondInputMode(); }
-
-  });
-
-  setupCollapsibles();
-
-  document.addEventListener("DOMContentLoaded", () => {
-    setupAreaSection(
-      "addGroundUpperDim", 
-      "groundUpperLength", 
-      "groundUpperWidth", 
-      "groundUpperArea", 
-      "groundUpperCalc"
-    );
-
-    setupAreaSection(
-      "addBasementDim", 
-      "basementLength", 
-      "basementWidth", 
-      "basementArea", 
-      "basementCalc"
-    );
-
-    setupAreaDimensions();
-  });
-
-  updateSpaceHeatInputMode();
-  updateAirCondInputMode();
-
-  renderSpaceHeatList();
-  renderAirCondList();
-  renderRangeList();
-  renderSpecialWaterList();
-  renderApplianceList();
-
-  calculate();
-
-
-
-
-function setupAreaSection(buttonId, lengthId, widthId, areaInputId, calcDisplayId) {
-  const btn = document.getElementById(buttonId);
-  const lengthInput = document.getElementById(lengthId);
-  const widthInput = document.getElementById(widthId);
-  const areaInput = document.getElementById(areaInputId);
-  const calcDisplay = document.getElementById(calcDisplayId);
-
-  if (btn && lengthInput && widthInput && areaInput) {
-
-    // Prevent live updates from touching the main area input
-    const preventLiveAutoFill = () => {
-      // Do nothing – this cancels existing event logic if any
-    };
-
-    lengthInput.addEventListener("input", preventLiveAutoFill);
-    widthInput.addEventListener("input", preventLiveAutoFill);
-
-    btn.addEventListener("click", () => {
-      const length = parseFloat(lengthInput.value);
-      const width = parseFloat(widthInput.value);
-
-      if (!isNaN(length) && !isNaN(width) && length > 0 && width > 0) {
-        const addedArea = length * width;
-        const currentArea = parseFloat(areaInput.value) || 0;
-        const newTotal = currentArea + addedArea;
-
-        areaInput.value = Math.round(newTotal);
-        lengthInput.value = "";
-        widthInput.value = "";
-
-        if (calcDisplay) {
-          calcDisplay.textContent = `${Math.round(addedArea)} ft² added`;
+    function setupAreaSection(buttonId, lengthId, widthId, areaInputId, calcDisplayId){
+      // Handler executed when an Add button is clicked. We re-query inputs at click time
+      // (in case the DOM changes) and provide a delegated fallback so clicks are
+      // handled even if the button isn't present at handler-registration time.
+      function handleClick(){
+        var lengthEl = document.getElementById(lengthId);
+        var widthEl = document.getElementById(widthId);
+        var areaEl = document.getElementById(areaInputId);
+        var calcDisplay = document.getElementById(calcDisplayId);
+        if(!lengthEl || !widthEl || !areaEl) return;
+        var length = parseFloat(lengthEl.value);
+        var width = parseFloat(widthEl.value);
+        if(!isNaN(length) && !isNaN(width) && length > 0 && width > 0){
+          var added = length * width;
+          var current = parseFloat(areaEl.value) || 0;
+          var total = current + added;
+          areaEl.value = Math.round(total);
+          lengthEl.value = '';
+          widthEl.value = '';
+          if(calcDisplay) calcDisplay.textContent = Math.round(added) + ' ft\u00b2 added';
+          calculate();
         }
       }
-    });
-  }
-}
 
-document.addEventListener("DOMContentLoaded", () => {
-  setupAreaSection(
-    "addGroundUpperDim", 
-    "groundUpperLength", 
-    "groundUpperWidth", 
-    "groundUpperArea", 
-    "groundUpperCalc"
-  );
+      var btn = document.getElementById(buttonId);
+      if(btn){
+        btn.addEventListener('click', function(e){ e && e.preventDefault(); handleClick(); });
+      }
 
-  setupAreaSection(
-    "addBasementDim", 
-    "basementLength", 
-    "basementWidth", 
-    "basementArea", 
-    "basementCalc"
-  );
-});
+      // Delegated fallback: catch clicks on the document that match the button id.
+      document.addEventListener('click', function(e){
+        if(!e || !e.target) return;
+        try{
+          if(e.target.id === buttonId || (e.target.closest && e.target.closest('#'+buttonId))){
+            e.preventDefault();
+            handleClick();
+          }
+        }catch(err){ /* ignore malformed selectors */ }
+      });
+    }
+
+    function rangeDemand(rangeEntries){ if(!rangeEntries||rangeEntries.length===0) return 0; var total=0; rangeEntries.forEach(function(item){ var count=Math.max(0,item.count); var rating=Math.max(0,item.watts); if(count<=0||rating<=0) return; var over=Math.max(0,rating-12000); var perRange = 6000 + 0.40 * over; total += count * perRange; }); return total; }
+
+    function otherLoadsDemandW(hasRange, appliancesW){ var totalW = appliancesW; if(totalW<=0) return 0; if(hasRange) return totalW * 0.25; var first = Math.min(6000, totalW); var rem = Math.max(0, totalW - 6000); return first + rem * 0.25; }
+
+    function computeAreas(){ var groundUpperFt2 = parseFloat($('groundUpperArea').value) || 0; var basementFt2 = parseFloat($('basementArea').value) || 0; var livingFt2 = groundUpperFt2 + 0.75 * basementFt2; var exclusiveFt2 = groundUpperFt2; var livingAreaDisplay = $('livingAreaDisplay'); if(livingAreaDisplay) livingAreaDisplay.textContent = fmtA(livingFt2); var exclusiveAreaDisplay = $('exclusiveAreaDisplay'); if(exclusiveAreaDisplay) exclusiveAreaDisplay.textContent = fmtA(exclusiveFt2); return { groundUpperFt2: groundUpperFt2, basementFt2: basementFt2, livingFt2: livingFt2, exclusiveFt2: exclusiveFt2, livingSqM: livingFt2 / SQFT_PER_SQM, exclusiveSqM: exclusiveFt2 / SQFT_PER_SQM }; }
+
+    function calculate(){ var areas = computeAreas(); var livingSqM = areas.livingSqM; var exclusiveSqM = areas.exclusiveSqM; var pickDimension = function(id){ var el=$(id); if(!el) return null; var v=parseFloat(el.value); return Number.isFinite(v) && v>0 ? v : null; }; var groundUpperLength = pickDimension('groundUpperLength'); var groundUpperWidth = pickDimension('groundUpperWidth'); var basementLength = pickDimension('basementLength'); var basementWidth = pickDimension('basementWidth'); var spaceHeatDemandW = state.spaceHeat.reduce(function(s,i){ return s + i.watts; },0); var acW = state.airCond.reduce(function(s,i){ return s + i.watts; },0); var interlockEl = $('interlock'); var interlock = interlockEl ? interlockEl.value === 'yes' : false; var totalRanges = state.ranges.reduce(function(s,i){ return s + i.count; },0); var tanklessWatts = parseFloat($('tanklessWatts')?$('tanklessWatts').value:0) || 0; var storageWHWatts = parseFloat($('storageWHWatts')?$('storageWHWatts').value:0) || 0; var specialDedicatedW = state.specialWater.reduce(function(s,i){ return s + i.watts; },0); var evseCount = parseInt($('evseCount')?$('evseCount').value:'0',10) || 0; var evseWatts = parseFloat($('evseWatts')?$('evseWatts').value:0) || 0; var evems = ($('evems') && $('evems').value === 'yes'); var voltage = 240; var basic = 0; if(livingSqM > 0){ basic = 5000; var extra = Math.max(0, livingSqM - 90); if(extra>0){ var blocks = Math.ceil(extra / 90); basic += blocks * 1000; } } var heatW = spaceHeatDemandW; var spaceCondW = interlock ? Math.max(heatW, acW) : (heatW + acW); var rangesW = rangeDemand(state.ranges); var specialWHW = tanklessWatts + specialDedicatedW; var evseW = evems ? 0 : evseCount * evseWatts; var manualAppliancesW = state.appliances.reduce(function(s,i){ return s + i.watts; },0); var appliancesW = manualAppliancesW + storageWHWatts; var otherW = otherLoadsDemandW(totalRanges > 0, appliancesW); var pathA = basic + spaceCondW + rangesW + specialWHW + evseW + otherW; var pathB = (computeAreas().exclusiveSqM >= 80) ? 24000 : 14400; var calcLoad = Math.max(pathA, pathB); var amps = calcLoad / voltage; if($('pathA')) $('pathA').textContent = fmtW(pathA); if($('pathB')) $('pathB').textContent = fmtW(pathB); if($('calcLoad')) $('calcLoad').textContent = fmtW(calcLoad); if($('minAmps')) $('minAmps').textContent = fmtA(amps); if($('voltsLabel')) $('voltsLabel').textContent = voltage; lastCalcSnapshot = { area: { groundUpperFt2: parseFloat($('groundUpperArea').value)||0, basementFt2: parseFloat($('basementArea').value)||0, livingFt2: areas.livingFt2, exclusiveFt2: areas.exclusiveFt2, groundUpperLength: groundUpperLength, groundUpperWidth: groundUpperWidth, basementLength: basementLength, basementWidth: basementWidth }, loads: { basic: basic, spaceHeatDemandW: heatW, airCondDemandW: acW, spaceConditioningW: spaceCondW, interlock: interlock, rangesDemandW: rangesW, tanklessWatts: tanklessWatts, specialDedicatedW: specialDedicatedW, specialTotalW: specialWHW, storageWHWatts: storageWHWatts, manualAppliancesW: manualAppliancesW, appliancesPoolW: appliancesW, otherDemandW: otherW, evseDemandW: evseW, evseCount: evseCount, evseWatts: evseWatts, evems: evems, totalRanges: totalRanges }, results: { pathA: pathA, pathB: pathB, calcLoad: calcLoad, amps: amps, voltage: voltage } }; }
+
+    function formatInspectionDate(value){ if(!value) return null; var parts = value.split('-'); if(parts.length !== 3) return null; var y=parseInt(parts[0],10), m=parseInt(parts[1],10), d=parseInt(parts[2],10); if(!Number.isFinite(y)||!Number.isFinite(m)||!Number.isFinite(d)) return null; var date=new Date(y,m-1,d); if(Number.isNaN(date.getTime())) return null; return new Intl.DateTimeFormat(undefined, { year: 'numeric', month: 'long', day: 'numeric' }).format(date); }
+
+    function generateReport(){ if(!lastCalcSnapshot) calculate(); var snapshot = lastCalcSnapshot; if(!snapshot){ alert('Please calculate the load before generating a report.'); return; } var inspectionEl=$('inspectionDate'); var policyEl=$('policyNumber'); var inspectionValue = inspectionEl ? inspectionEl.value : ''; var policyValue = policyEl ? policyEl.value.trim() : ''; var inspectionDisplay = formatInspectionDate(inspectionValue) || 'Not provided'; var policyDisplay = policyValue ? escapeHtml(policyValue) : 'Not provided'; var areaRows = []; areaRows.push('<tr><th scope="row">Ground & upper living area</th><td>'+fmtA(snapshot.area.groundUpperFt2)+' ft\u00b2</td></tr>'); areaRows.push('<tr><th scope="row">Basement area (>= 5 ft 11 in)</th><td>'+fmtA(snapshot.area.basementFt2)+' ft\u00b2</td></tr>'); areaRows.push('<tr><th scope="row">Living area (with 75% basement)</th><td>'+fmtA(snapshot.area.livingFt2)+' ft\u00b2</td></tr>'); areaRows.push('<tr><th scope="row">Exclusive above-grade area</th><td>'+fmtA(snapshot.area.exclusiveFt2)+' ft\u00b2</td></tr>'); var groundDims = (snapshot.area.groundUpperLength && snapshot.area.groundUpperWidth) ? (snapshot.area.groundUpperLength+' x '+snapshot.area.groundUpperWidth+' ft') : null; if(groundDims) areaRows.push('<tr><th scope="row">Ground & upper dimensions</th><td>'+escapeHtml(groundDims)+'</td></tr>'); var basementDims = (snapshot.area.basementLength && snapshot.area.basementWidth) ? (snapshot.area.basementLength+' x '+snapshot.area.basementWidth+' ft') : null; if(basementDims) areaRows.push('<tr><th scope="row">Basement dimensions</th><td>'+escapeHtml(basementDims)+'</td></tr>'); var spaceHeatRows = ''; if(state.spaceHeat.length){ for(var i=0;i<state.spaceHeat.length;i++){ var itm=state.spaceHeat[i]; var det = itm.type==='amps' ? (fmtA(itm.amps)+' A @ '+fmtA(itm.voltage)+' V ('+fmtW(itm.watts)+' W)') : (fmtW(itm.watts)+' W'); spaceHeatRows += '<tr><td>'+ (i+1) +'. '+ escapeHtml(itm.label) +'</td><td>'+ escapeHtml(det) +'</td></tr>'; } } else { spaceHeatRows = '<tr><td colspan="2">No space heating loads recorded.</td></tr>'; } var airRows=''; if(state.airCond.length){ for(var j=0;j<state.airCond.length;j++){ var it=state.airCond[j]; var det2 = it.type==='amps' ? (fmtA(it.amps)+' A @ '+fmtA(it.voltage)+' V ('+fmtW(it.watts)+' W)') : (fmtW(it.watts)+' W'); airRows += '<tr><td>'+ (j+1) +'. '+ escapeHtml(it.label) +'</td><td>'+ escapeHtml(det2) +'</td></tr>'; } } else { airRows = '<tr><td colspan="2">No air conditioning loads recorded.</td></tr>'; } var rangeRows=''; if(state.ranges.length){ for(var r=0;r<state.ranges.length;r++){ var ri=state.ranges[r]; rangeRows += '<tr><td>'+ (r+1) +'. '+ escapeHtml(ri.label) +'</td><td>'+ ri.count + ' x ' + fmtW(ri.watts) + ' W nameplate</td></tr>'; } } else { rangeRows = '<tr><td colspan="2">No cooking ranges recorded.</td></tr>'; } var reportWin = window.open('','_blank'); if(!reportWin){ alert('Please allow pop-ups to view the report.'); return; } var reportHtml = '<!doctype html><html><head><meta charset="utf-8"><title>Load Calculation Report</title></head><body><h1>Load Calculation Report</h1><p>Inspection: '+ escapeHtml(inspectionDisplay) +'</p><p>Policy: '+ policyDisplay +'</p><table>' + areaRows.join('') + '</table><h2>Space heating</h2><table>' + spaceHeatRows + '</table><h2>Air conditioning</h2><table>' + airRows + '</table><h2>Ranges</h2><table>' + rangeRows + '</table></body></html>'; reportWin.document.open(); reportWin.document.write(reportHtml); reportWin.document.close(); reportWin.focus(); }
+
+    (function init(){
+      function doInit(){
+        // Wire Add-section handlers and other UI initialization.
+        setupAreaSection('addGroundUpperDim','groundUpperLength','groundUpperWidth','groundUpperArea','groundUpperCalc');
+        setupAreaSection('addBasementDim','basementLength','basementWidth','basementArea','basementCalc');
+        setupAreaDimensions();
+        setupCollapsibles();
+        updateSpaceHeatInputMode();
+        updateAirCondInputMode();
+        renderAllLists();
+        calculate();
+      }
+      if(document.readyState === 'loading'){
+        document.addEventListener('DOMContentLoaded', doInit);
+      } else {
+        doInit();
+      }
+    })();
+
+    var reportBtn = $('reportBtn'); if(reportBtn) reportBtn.addEventListener('click', function(e){ e.preventDefault(); generateReport(); });
+    var addSpaceHeatBtn = $('addSpaceHeat'); if(addSpaceHeatBtn) addSpaceHeatBtn.addEventListener('click', function(e){ e.preventDefault(); addSpaceHeat(); });
+    var addAirCondBtn = $('addAirCond'); if(addAirCondBtn) addAirCondBtn.addEventListener('click', function(e){ e.preventDefault(); addAirCond(); });
+    var addRangeBtn = $('addRange'); if(addRangeBtn) addRangeBtn.addEventListener('click', function(e){ e.preventDefault(); addRange(); });
+    var addSpecialWaterBtn = $('addSpecialWater'); if(addSpecialWaterBtn) addSpecialWaterBtn.addEventListener('click', function(e){ e.preventDefault(); addSpecialWater(); });
+    var addApplianceBtn = $('addAppliance'); if(addApplianceBtn) addApplianceBtn.addEventListener('click', function(e){ e.preventDefault(); addAppliance(); });
+
+    var calcForm = $('calcForm'); if(calcForm){ calcForm.addEventListener('input', function(e){ var id = e && e.target && e.target.id; var instant = [ 'groundUpperArea','basementArea','spaceHeatName','spaceHeatType','spaceHeatValue','spaceHeatVoltage','airCondName','airCondType','airCondValue','airCondVoltage','rangeName','rangeCount','rangeWatts','interlock','tanklessWatts','storageWHWatts','evseCount','evseWatts','evems','applianceWatts','applianceName' ].indexOf(id) !== -1; if(instant) calculate(); if(id === 'spaceHeatType') updateSpaceHeatInputMode(); if(id === 'airCondType') updateAirCondInputMode(); }); }
+
+  })();
+    
 
 
-})();
 

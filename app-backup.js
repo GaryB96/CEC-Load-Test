@@ -540,9 +540,11 @@
         updateDisplay(Number.isFinite(value) && value > 0 ? value : null);
       };
 
-      lengthEl.addEventListener("input", updateFromDimensions);
-      widthEl.addEventListener("input", updateFromDimensions);
-      areaEl.addEventListener("input", handleAreaInput);
+  // Disabled live auto-fill listeners to avoid programmatic updates while typing.
+  // If you need to re-enable automatic area updates from dimensions, remove the comments below.
+  // lengthEl.addEventListener("input", updateFromDimensions);
+  // widthEl.addEventListener("input", updateFromDimensions);
+  // areaEl.addEventListener("input", handleAreaInput);
 
       handleAreaInput();
       updateFromDimensions();
