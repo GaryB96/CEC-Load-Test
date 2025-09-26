@@ -12,7 +12,188 @@
 
   const SQFT_PER_SQM = 10.763910416709722;
 
-  const state = { appliances: [] };
+  const state = { appliances: [], spaceHeat: [], airCond: [], ranges: [] };
+
+  function renderSpaceHeatList(){
+
+    const host = $("spaceHeatList");
+
+    if(!host){ return; }
+
+    host.innerHTML = "";
+
+    state.spaceHeat.forEach((item, idx) => {
+
+      const row = document.createElement("div");
+      row.className = "item";
+
+      const name = document.createElement("div");
+      name.textContent = item.label;
+
+      const val = document.createElement("div");
+      val.className = "mono";
+      val.textContent = item.type === "amps"
+        ? `${fmtA(item.amps)} A @ ${fmtA(item.voltage)} V (${fmtW(item.watts)} W)`
+        : `${fmtW(item.watts)} W`;
+
+      const kill = document.createElement("button");
+      kill.className = "kill";
+      kill.textContent = "Remove";
+      kill.addEventListener("click", () => {
+        state.spaceHeat.splice(idx,1);
+        renderSpaceHeatList();
+        calculate();
+      });
+
+      row.appendChild(name);
+      row.appendChild(val);
+      row.appendChild(kill);
+      host.appendChild(row);
+
+    });
+
+  }
+
+  function updateSpaceHeatInputMode(){
+
+    const typeEl = $("spaceHeatType");
+    const valueEl = $("spaceHeatValue");
+    const voltageEl = $("spaceHeatVoltage");
+
+    if(!typeEl || !valueEl || !voltageEl){ return; }
+
+    const type = typeEl.value;
+
+    if(type === "amps"){
+      voltageEl.style.display = "";
+      voltageEl.disabled = false;
+      valueEl.placeholder = "Amps";
+    } else {
+      voltageEl.style.display = "none";
+      voltageEl.disabled = true;
+      valueEl.placeholder = "Watts";
+    }
+
+  }
+
+  function addSpaceHeat(){
+
+    const nameEl = $("spaceHeatName");
+    const typeEl = $("spaceHeatType");
+    const valueEl = $("spaceHeatValue");
+    const voltageEl = $("spaceHeatVoltage");
+
+    if(!typeEl || !valueEl){ return; }
+
+    const label = nameEl ? nameEl.value.trim() : "";
+    const type = typeEl.value;
+    const value = parseFloat(valueEl.value);
+
+    if(isNaN(value) || value <= 0){ return; }
+
+    let watts = 0;
+    let amps = null;
+    let voltage = null;
+
+    if(type === "amps"){
+      const rawVoltage = voltageEl ? parseFloat(voltageEl.value) : NaN;
+      if(isNaN(rawVoltage) || rawVoltage <= 0){ return; }
+      amps = value;
+      voltage = rawVoltage;
+      watts = amps * voltage;
+    } else {
+      watts = value;
+    }
+
+    const item = {
+      label: label || (type === "amps" ? "Heating load (A)" : "Heating load (W)"),
+      type,
+      watts: Math.round(watts),
+      amps: type === "amps" ? amps : null,
+      voltage: type === "amps" ? voltage : null
+    };
+
+    state.spaceHeat.push(item);
+
+    if(nameEl){ nameEl.value = ""; }
+    valueEl.value = "";
+
+    renderSpaceHeatList();
+    calculate();
+
+  }
+
+  function renderRangeList(){
+
+    const host = $("rangeList");
+
+    if(!host){ return; }
+
+    host.innerHTML = "";
+
+    state.ranges.forEach((item, idx) => {
+
+      const row = document.createElement("div");
+      row.className = "item";
+
+      const name = document.createElement("div");
+      name.textContent = item.label;
+
+      const val = document.createElement("div");
+      val.className = "mono";
+      val.textContent = `${item.count} x ${fmtW(item.watts)} W`;
+
+      const kill = document.createElement("button");
+      kill.className = "kill";
+      kill.textContent = "Remove";
+      kill.addEventListener("click", () => {
+        state.ranges.splice(idx,1);
+        renderRangeList();
+        calculate();
+      });
+
+      row.appendChild(name);
+      row.appendChild(val);
+      row.appendChild(kill);
+      host.appendChild(row);
+
+    });
+
+  }
+
+  function addRange(){
+
+    const nameEl = $("rangeName");
+    const countEl = $("rangeCount");
+    const wattsEl = $("rangeWatts");
+
+    if(!countEl || !wattsEl){ return; }
+
+    const label = nameEl ? nameEl.value.trim() : "";
+    const count = parseInt(countEl.value || "0", 10);
+    const watts = parseFloat(wattsEl.value);
+
+    if(isNaN(count) || count <= 0){ return; }
+    if(isNaN(watts) || watts <= 0){ return; }
+
+    const item = {
+      label: label || "Range",
+      count,
+      watts: Math.round(watts)
+    };
+
+    state.ranges.push(item);
+
+    console.log("Added range", item);
+
+    if(nameEl){ nameEl.value = ""; }
+    if(countEl){ countEl.value = countEl.defaultValue || "1"; }
+    if(wattsEl){ wattsEl.value = wattsEl.defaultValue || ""; }
+
+    renderRangeList();
+    calculate();
+
+  }
 
   function renderApplianceList(){
 
@@ -84,21 +265,20 @@
 
   }
 
-  function rangeDemand(rangeCount, rangeWatts){
+  function rangeDemand(rangeEntries){
 
-    if(rangeCount <= 0) return 0;
+    if(!rangeEntries || rangeEntries.length === 0){ return 0; }
 
     let total = 0;
 
-    for(let i=0;i<rangeCount;i++){
-
-      const rating = Math.max(0, rangeWatts);
-
+    rangeEntries.forEach((item) => {
+      const count = Math.max(0, item.count);
+      const rating = Math.max(0, item.watts);
+      if(count <= 0 || rating <= 0){ return; }
       const over = Math.max(0, rating - 12000);
-
-      total += 6000 + 0.40 * over; // per 8-200(1)(a)(iv)
-
-    }
+      const perRange = 6000 + 0.40 * over; // per 8-200(1)(a)(iv)
+      total += count * perRange;
+    });
 
     return total;
 
@@ -153,19 +333,15 @@
 
     const exclusiveAreaSqM = exclusiveSqM;
 
-    // Electric space heating always demanded at 100% (inputs already in watts)
+    // Electric space heating always demanded at 100% (tracked per-entry in watts)
 
-    const spaceHeatConnectedW = parseFloat($("spaceHeatConnected").value) || 0;
+    const spaceHeatDemandW = state.spaceHeat.reduce((sum, item) => sum + item.watts, 0);
 
-    const spaceHeatDemandW = spaceHeatConnectedW;
-
-    const acW = parseFloat($("airCond").value) || 0;
+    const acW = state.airCond.reduce((sum, item) => sum + item.watts, 0);
 
     const interlock = $("interlock").value === "yes";
 
-    const rangeCount = parseInt($("rangeCount").value || "0", 10);
-
-    const rangeWatts = parseFloat($("rangeWatts").value) || 0;
+    const totalRanges = state.ranges.reduce((sum, item) => sum + item.count, 0);
 
     const tanklessWatts = parseFloat($("tanklessWatts").value) || 0;
 
@@ -209,7 +385,7 @@
 
     // 3) Ranges - 8-200(1)(a)(iv)
 
-    const rangesW = rangeDemand(rangeCount, rangeWatts);
+    const rangesW = rangeDemand(state.ranges);
 
     // 4) Special water heating - 8-200(1)(a)(v)
 
@@ -225,7 +401,7 @@
 
     // 6) Other >1500 W - 8-200(1)(a)(vii)
 
-    const otherW = otherLoadsDemandW(rangeCount > 0, appliancesW);
+    const otherW = otherLoadsDemandW(totalRanges > 0, appliancesW);
 
     // Path A total
 
@@ -259,9 +435,71 @@
 
   }
 
+  const addSpaceHeatBtn = $("addSpaceHeat");
 
+  if(addSpaceHeatBtn){
 
-  $("addAppliance").addEventListener("click", addAppliance);
+    addSpaceHeatBtn.addEventListener("click", (evt) => {
+
+      evt.preventDefault();
+
+      addSpaceHeat();
+
+    });
+
+  }
+
+  const spaceHeatTypeEl = $("spaceHeatType");
+
+  if(spaceHeatTypeEl){
+
+    spaceHeatTypeEl.addEventListener("change", updateSpaceHeatInputMode);
+
+  }
+
+  const addAirCondBtn = $("addAirCond");
+
+  if(addAirCondBtn){
+
+    addAirCondBtn.addEventListener("click", (evt) => {
+
+      evt.preventDefault();
+
+      addAirCond();
+
+    });
+
+  }
+
+  const airCondTypeEl = $("airCondType");
+
+  if(airCondTypeEl){
+
+    airCondTypeEl.addEventListener("change", updateAirCondInputMode);
+
+  }
+
+  const addRangeBtn = $("addRange");
+
+  if(addRangeBtn){
+
+    addRangeBtn.addEventListener("click", (evt) => {
+
+      evt.preventDefault();
+
+      addRange();
+
+    });
+
+  }
+
+  const addApplianceBtn = $("addAppliance");
+
+  if(addApplianceBtn){
+
+    addApplianceBtn.addEventListener("click", addAppliance);
+
+  }
 
   $("calcBtn").addEventListener("click", calculate);
 
@@ -269,20 +507,37 @@
 
     const id = e.target && e.target.id;
 
-    const instant = ["groundUpperArea","basementArea",
-
-                     "spaceHeatConnected","airCond","interlock",
-
-                     "rangeCount","rangeWatts","tanklessWatts","specialWHWatts","storageWHWatts",
-
+    const instant = [
+                     "groundUpperArea","basementArea",
+                     "spaceHeatName","spaceHeatType","spaceHeatValue","spaceHeatVoltage",
+                     "airCondName","airCondType","airCondValue","airCondVoltage",
+                     "rangeName","rangeCount","rangeWatts","interlock",
+                     "tanklessWatts","specialWHWatts","storageWHWatts",
                      "evseCount","evseWatts","evems","voltage","applianceWatts","applianceName"].includes(id);
 
     if(instant){ calculate(); }
 
+    if(id === "spaceHeatType"){ updateSpaceHeatInputMode(); }
+
+    if(id === "airCondType"){ updateAirCondInputMode(); }
+
   });
 
   // Initial render
+
+  updateSpaceHeatInputMode();
+
+  updateAirCondInputMode();
+
+  renderSpaceHeatList();
+
+  renderAirCondList();
+
+  renderRangeList();
+
   renderApplianceList();
+
   calculate();
 
 })();
+

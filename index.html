@@ -37,13 +37,39 @@
       <fieldset class="stack">
         <legend>Space conditioning (8-106(3))</legend>
         <div class="grid">
-          <div class="col-4">
-            <label for="spaceHeatConnected">Electric space heating - <u>connected</u> (W)</label>
-            <input id="spaceHeatConnected" type="number" inputmode="decimal" min="0" step="1" value="0">
+          <div class="col-12">
+            <label>Electric space heating loads</label>
+            <div id="spaceHeatList" class="list"></div>
+            <div class="split">
+              <div class="row">
+                <input id="spaceHeatName" placeholder="e.g., Heat pump" />
+                <select id="spaceHeatType">
+                  <option value="watts" selected>Watts</option>
+                  <option value="amps">Amps</option>
+                </select>
+                <input id="spaceHeatValue" type="number" inputmode="decimal" min="0" step="1" placeholder="Watts" />
+                <input id="spaceHeatVoltage" type="number" inputmode="decimal" min="0" step="1" value="240" placeholder="Voltage (V)" style="display:none;" />
+              </div>
+              <button class="btn" id="addSpaceHeat" type="button">Add</button>
+            </div>
+            <p class="help">Enter each heating appliance by watts or by amps @ voltage; loads are counted at 100%.</p>
           </div>
-          <div class="col-4">
-            <label for="airCond">Air conditioning (W)</label>
-            <input id="airCond" type="number" inputmode="decimal" min="0" step="1" value="0">
+          <div class="col-12">
+            <label>Air conditioning loads</label>
+            <div id="airCondList" class="list"></div>
+            <div class="split">
+              <div class="row">
+                <input id="airCondName" placeholder="e.g., AC unit" />
+                <select id="airCondType">
+                  <option value="watts" selected>Watts</option>
+                  <option value="amps">Amps</option>
+                </select>
+                <input id="airCondValue" type="number" inputmode="decimal" min="0" step="1" placeholder="Watts" />
+                <input id="airCondVoltage" type="number" inputmode="decimal" min="0" step="1" value="240" placeholder="Voltage (V)" style="display:none;" />
+              </div>
+              <button class="btn" id="addAirCond" type="button">Add</button>
+            </div>
+            <p class="help">Enter each cooling appliance by watts or by amps @ voltage.</p>
           </div>
           <div class="col-4">
             <label for="interlock">Interlock heat vs A/C?</label>
@@ -58,14 +84,18 @@
       <fieldset class="stack">
         <legend>Cooking (8-200(1)(a)(iv))</legend>
         <div class="grid">
-          <div class="col-6">
-            <label for="rangeCount">Number of ranges</label>
-            <input id="rangeCount" type="number" min="0" step="1" value="1">
-          </div>
-          <div class="col-6">
-            <label for="rangeWatts">Nameplate per range (W)</label>
-            <input id="rangeWatts" type="number" min="0" step="1" value="12000">
-            <p class="help">Demand: 6000 W for a single range + 40% of any amount &gt; 12 000 W.</p>
+          <div class="col-12">
+            <label>Ranges</label>
+            <div id="rangeList" class="list"></div>
+            <div class="split">
+              <div class="row">
+                <input id="rangeName" placeholder="e.g., Kitchen range" />
+                <input id="rangeCount" type="number" min="1" step="1" value="1" placeholder="Qty" />
+                <input id="rangeWatts" type="number" min="0" step="1" value="12000" placeholder="Watts" />
+              </div>
+              <button class="btn" id="addRange" type="button">Add</button>
+            </div>
+            <p class="help">Demand per 8-200(1)(a)(iv): 6000 W for each range + 40% of any nameplate over 12 000 W.</p>
           </div>
         </div>
       </fieldset>
@@ -187,7 +217,7 @@
 
 
 
-<script src="app.js"></script>
+<script src="app.js?v=20240710"></script>
 <script>
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
