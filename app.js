@@ -479,6 +479,11 @@
     ];
 
     configs.forEach((cfg) => {
+      // If an 'Add section' button exists for this area, skip auto-fill setup
+      const addSectionBtnId = 'add' + cfg.lengthId.replace('Length','Dim');
+      if (document.getElementById(addSectionBtnId)) {
+        return;
+      }
 
       const lengthEl = $(cfg.lengthId);
       const widthEl = $(cfg.widthId);
@@ -487,8 +492,8 @@
 
       if(!lengthEl || !widthEl || !areaEl){ return; }
 
-  let programmatic = false;
-  let originalArea = null;
+      let programmatic = false;
+      let originalArea = null;
 
       const updateDisplay = (value) => {
         if(!displayEl){ return; }
@@ -1108,7 +1113,26 @@
   });
 
   setupCollapsibles();
-  setupAreaDimensions();
+
+  document.addEventListener("DOMContentLoaded", () => {
+    setupAreaSection(
+      "addGroundUpperDim", 
+      "groundUpperLength", 
+      "groundUpperWidth", 
+      "groundUpperArea", 
+      "groundUpperCalc"
+    );
+
+    setupAreaSection(
+      "addBasementDim", 
+      "basementLength", 
+      "basementWidth", 
+      "basementArea", 
+      "basementCalc"
+    );
+
+    setupAreaDimensions();
+  });
 
   updateSpaceHeatInputMode();
   updateAirCondInputMode();
