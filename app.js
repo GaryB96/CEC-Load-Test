@@ -487,7 +487,8 @@
 
       if(!lengthEl || !widthEl || !areaEl){ return; }
 
-      let programmatic = false;
+  let programmatic = false;
+  let originalArea = null;
 
       const updateDisplay = (value) => {
         if(!displayEl){ return; }
@@ -499,12 +500,17 @@
       };
 
       const setAutoArea = (areaValue) => {
-        const rounded = Math.round(areaValue);
+        // On first dimension input, store the original area value
+        if (originalArea === null) {
+          const current = parseFloat(areaEl.value);
+          originalArea = Number.isFinite(current) && current > 0 ? current : 0;
+        }
+        const rounded = Math.round(originalArea + areaValue);
         if(!Number.isFinite(rounded) || rounded <= 0){ return; }
         programmatic = true;
         areaEl.value = String(rounded);
         areaEl.dataset.autofilled = "true";
-        updateDisplay(areaValue);
+        updateDisplay(originalArea + areaValue);
         areaEl.dispatchEvent(new Event("input", { bubbles: true }));
         programmatic = false;
       };
@@ -516,6 +522,7 @@
         updateDisplay(null);
         areaEl.dispatchEvent(new Event("input", { bubbles: true }));
         programmatic = false;
+        originalArea = null;
       };
 
       const updateFromDimensions = () => {
@@ -529,6 +536,7 @@
         } else {
           const current = parseFloat(areaEl.value);
           updateDisplay(Number.isFinite(current) && current > 0 ? current : null);
+          originalArea = null;
         }
       };
 
@@ -540,8 +548,11 @@
         updateDisplay(Number.isFinite(value) && value > 0 ? value : null);
       };
 
-      lengthEl.addEventListener("input", updateFromDimensions);
-      widthEl.addEventListener("input", updateFromDimensions);
+      // Disable live area auto-fill if 'Add section' button is present
+      if (!document.getElementById('add' + cfg.lengthId.replace('Length','Dim'))) {
+        lengthEl.addEventListener("input", updateFromDimensions);
+        widthEl.addEventListener("input", updateFromDimensions);
+      }
       areaEl.addEventListener("input", handleAreaInput);
 
       handleAreaInput();
