@@ -74,7 +74,7 @@ fieldset > legend {
   letter-spacing: 0.05em;
   text-transform: uppercase;
   color: rgba(154,107,255,0.85);
-  padding: 0 0.2rem;
+  padding: 0 0.4rem; /* slightly larger horizontal padding for breathing room */
 }
 
 label { display: block; font-weight: 600; margin-bottom: 0.35rem; color: #f7f9ff; }
@@ -331,7 +331,8 @@ select option:checked {
   border: 0;
   color: inherit;
   font: inherit;
-  padding: 0.35rem 0.85rem 0.35rem 0;
+  /* add left padding so header text doesn't sit flush against the card border */
+  padding: 0.35rem 0.85rem 0.35rem 0.85rem;
   cursor: pointer;
   border-radius: 10px;
 }

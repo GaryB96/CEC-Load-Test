@@ -77,6 +77,19 @@
         btn.addEventListener('click', function(e){ e && e.preventDefault(); handleClick(); });
       }
 
+      // Also allow Enter/Return in either length or width to trigger the same add behavior.
+      function handleKey(e){
+        if(!e) return;
+        if(e.key === 'Enter' || e.keyCode === 13){
+          e.preventDefault();
+          handleClick();
+        }
+      }
+      var lengthEl = document.getElementById(lengthId);
+      var widthEl = document.getElementById(widthId);
+      if(lengthEl) lengthEl.addEventListener('keydown', handleKey);
+      if(widthEl) widthEl.addEventListener('keydown', handleKey);
+
       // Delegated fallback: catch clicks on the document that match the button id.
       document.addEventListener('click', function(e){
         if(!e || !e.target) return;
@@ -99,7 +112,48 @@
 
     function formatInspectionDate(value){ if(!value) return null; var parts = value.split('-'); if(parts.length !== 3) return null; var y=parseInt(parts[0],10), m=parseInt(parts[1],10), d=parseInt(parts[2],10); if(!Number.isFinite(y)||!Number.isFinite(m)||!Number.isFinite(d)) return null; var date=new Date(y,m-1,d); if(Number.isNaN(date.getTime())) return null; return new Intl.DateTimeFormat(undefined, { year: 'numeric', month: 'long', day: 'numeric' }).format(date); }
 
-    function generateReport(){ if(!lastCalcSnapshot) calculate(); var snapshot = lastCalcSnapshot; if(!snapshot){ alert('Please calculate the load before generating a report.'); return; } var inspectionEl=$('inspectionDate'); var policyEl=$('policyNumber'); var inspectionValue = inspectionEl ? inspectionEl.value : ''; var policyValue = policyEl ? policyEl.value.trim() : ''; var inspectionDisplay = formatInspectionDate(inspectionValue) || 'Not provided'; var policyDisplay = policyValue ? escapeHtml(policyValue) : 'Not provided'; var areaRows = []; areaRows.push('<tr><th scope="row">Ground & upper living area</th><td>'+fmtA(snapshot.area.groundUpperFt2)+' ft\u00b2</td></tr>'); areaRows.push('<tr><th scope="row">Basement area (>= 5 ft 11 in)</th><td>'+fmtA(snapshot.area.basementFt2)+' ft\u00b2</td></tr>'); areaRows.push('<tr><th scope="row">Living area (with 75% basement)</th><td>'+fmtA(snapshot.area.livingFt2)+' ft\u00b2</td></tr>'); areaRows.push('<tr><th scope="row">Exclusive above-grade area</th><td>'+fmtA(snapshot.area.exclusiveFt2)+' ft\u00b2</td></tr>'); var groundDims = (snapshot.area.groundUpperLength && snapshot.area.groundUpperWidth) ? (snapshot.area.groundUpperLength+' x '+snapshot.area.groundUpperWidth+' ft') : null; if(groundDims) areaRows.push('<tr><th scope="row">Ground & upper dimensions</th><td>'+escapeHtml(groundDims)+'</td></tr>'); var basementDims = (snapshot.area.basementLength && snapshot.area.basementWidth) ? (snapshot.area.basementLength+' x '+snapshot.area.basementWidth+' ft') : null; if(basementDims) areaRows.push('<tr><th scope="row">Basement dimensions</th><td>'+escapeHtml(basementDims)+'</td></tr>'); var spaceHeatRows = ''; if(state.spaceHeat.length){ for(var i=0;i<state.spaceHeat.length;i++){ var itm=state.spaceHeat[i]; var det = itm.type==='amps' ? (fmtA(itm.amps)+' A @ '+fmtA(itm.voltage)+' V ('+fmtW(itm.watts)+' W)') : (fmtW(itm.watts)+' W'); spaceHeatRows += '<tr><td>'+ (i+1) +'. '+ escapeHtml(itm.label) +'</td><td>'+ escapeHtml(det) +'</td></tr>'; } } else { spaceHeatRows = '<tr><td colspan="2">No space heating loads recorded.</td></tr>'; } var airRows=''; if(state.airCond.length){ for(var j=0;j<state.airCond.length;j++){ var it=state.airCond[j]; var det2 = it.type==='amps' ? (fmtA(it.amps)+' A @ '+fmtA(it.voltage)+' V ('+fmtW(it.watts)+' W)') : (fmtW(it.watts)+' W'); airRows += '<tr><td>'+ (j+1) +'. '+ escapeHtml(it.label) +'</td><td>'+ escapeHtml(det2) +'</td></tr>'; } } else { airRows = '<tr><td colspan="2">No air conditioning loads recorded.</td></tr>'; } var rangeRows=''; if(state.ranges.length){ for(var r=0;r<state.ranges.length;r++){ var ri=state.ranges[r]; rangeRows += '<tr><td>'+ (r+1) +'. '+ escapeHtml(ri.label) +'</td><td>'+ ri.count + ' x ' + fmtW(ri.watts) + ' W nameplate</td></tr>'; } } else { rangeRows = '<tr><td colspan="2">No cooking ranges recorded.</td></tr>'; } var reportWin = window.open('','_blank'); if(!reportWin){ alert('Please allow pop-ups to view the report.'); return; } var reportHtml = '<!doctype html><html><head><meta charset="utf-8"><title>Load Calculation Report</title></head><body><h1>Load Calculation Report</h1><p>Inspection: '+ escapeHtml(inspectionDisplay) +'</p><p>Policy: '+ policyDisplay +'</p><table>' + areaRows.join('') + '</table><h2>Space heating</h2><table>' + spaceHeatRows + '</table><h2>Air conditioning</h2><table>' + airRows + '</table><h2>Ranges</h2><table>' + rangeRows + '</table></body></html>'; reportWin.document.open(); reportWin.document.write(reportHtml); reportWin.document.close(); reportWin.focus(); }
+    function generateReport(){
+      if(!lastCalcSnapshot) calculate();
+      var snapshot = lastCalcSnapshot;
+      if(!snapshot){ alert('Please calculate the load before generating a report.'); return; }
+      var inspectionEl=$('inspectionDate'); var policyEl=$('policyNumber');
+      var inspectionValue = inspectionEl ? inspectionEl.value : '';
+      var policyValue = policyEl ? policyEl.value.trim() : '';
+      var inspectionDisplay = formatInspectionDate(inspectionValue) || 'Not provided';
+      var policyDisplay = policyValue ? escapeHtml(policyValue) : 'Not provided';
+
+      var areaRows = [];
+
+      // If separate ground/upper inputs exist, show them separately.
+      var groundFloorEl = $('groundFloorArea');
+      var upperFloorEl = $('upperFloorArea');
+      if(groundFloorEl && upperFloorEl){
+        var groundFloor = parseFloat(groundFloorEl.value) || 0;
+        var upperFloor = parseFloat(upperFloorEl.value) || 0;
+        areaRows.push('<tr><th scope="row">Ground floor area</th><td>'+fmtA(groundFloor)+' ft\u00b2</td></tr>');
+        areaRows.push('<tr><th scope="row">Upper floor area</th><td>'+fmtA(upperFloor)+' ft\u00b2</td></tr>');
+      } else {
+        areaRows.push('<tr><th scope="row">Ground + upper living area</th><td>'+fmtA(snapshot.area.groundUpperFt2)+' ft\u00b2</td></tr>');
+      }
+
+      areaRows.push('<tr><th scope="row">Basement area (>= 5 ft 11 in)</th><td>'+fmtA(snapshot.area.basementFt2)+' ft\u00b2</td></tr>');
+      areaRows.push('<tr><th scope="row">Total living area (with 75% basement)</th><td>'+fmtA(snapshot.area.livingFt2)+' ft\u00b2</td></tr>');
+      areaRows.push('<tr><th scope="row">Exclusive above-grade area</th><td>'+fmtA(snapshot.area.exclusiveFt2)+' ft\u00b2</td></tr>');
+
+      var groundDims = (snapshot.area.groundUpperLength && snapshot.area.groundUpperWidth) ? (snapshot.area.groundUpperLength+' x '+snapshot.area.groundUpperWidth+' ft') : null;
+      if(groundDims) areaRows.push('<tr><th scope="row">Ground & upper dimensions</th><td>'+escapeHtml(groundDims)+'</td></tr>');
+      var basementDims = (snapshot.area.basementLength && snapshot.area.basementWidth) ? (snapshot.area.basementLength+' x '+snapshot.area.basementWidth+' ft') : null;
+      if(basementDims) areaRows.push('<tr><th scope="row">Basement dimensions</th><td>'+escapeHtml(basementDims)+'</td></tr>');
+
+      var spaceHeatRows = '';
+      if(state.spaceHeat.length){ for(var i=0;i<state.spaceHeat.length;i++){ var itm=state.spaceHeat[i]; var det = itm.type==='amps' ? (fmtA(itm.amps)+' A @ '+fmtA(itm.voltage)+' V ('+fmtW(itm.watts)+' W)') : (fmtW(itm.watts)+' W'); spaceHeatRows += '<tr><td>'+ (i+1) +'. '+ escapeHtml(itm.label) +'</td><td>'+ escapeHtml(det) +'</td></tr>'; } } else { spaceHeatRows = '<tr><td colspan="2">No space heating loads recorded.</td></tr>'; }
+      var airRows=''; if(state.airCond.length){ for(var j=0;j<state.airCond.length;j++){ var it=state.airCond[j]; var det2 = it.type==='amps' ? (fmtA(it.amps)+' A @ '+fmtA(it.voltage)+' V ('+fmtW(it.watts)+' W)') : (fmtW(it.watts)+' W'); airRows += '<tr><td>'+ (j+1) +'. '+ escapeHtml(it.label) +'</td><td>'+ escapeHtml(det2) +'</td></tr>'; } } else { airRows = '<tr><td colspan="2">No air conditioning loads recorded.</td></tr>'; }
+      var rangeRows=''; if(state.ranges.length){ for(var r=0;r<state.ranges.length;r++){ var ri=state.ranges[r]; rangeRows += '<tr><td>'+ (r+1) +'. '+ escapeHtml(ri.label) +'</td><td>'+ ri.count + ' x ' + fmtW(ri.watts) + ' W nameplate</td></tr>'; } } else { rangeRows = '<tr><td colspan="2">No cooking ranges recorded.</td></tr>'; }
+
+      var reportWin = window.open('','_blank'); if(!reportWin){ alert('Please allow pop-ups to view the report.'); return; }
+      var reportHtml = '<!doctype html><html><head><meta charset="utf-8"><title>Load Calculation Report</title></head><body><h1>Load Calculation Report</h1><p>Inspection: '+ escapeHtml(inspectionDisplay) +'</p><p>Policy: '+ policyDisplay +'</p><table>' + areaRows.join('') + '</table><h2>Space heating</h2><table>' + spaceHeatRows + '</table><h2>Air conditioning</h2><table>' + airRows + '</table><h2>Ranges</h2><table>' + rangeRows + '</table></body></html>';
+      reportWin.document.open(); reportWin.document.write(reportHtml); reportWin.document.close(); reportWin.focus();
+    }
 
     (function init(){
       function doInit(){
@@ -129,8 +183,50 @@
 
     var calcForm = $('calcForm'); if(calcForm){ calcForm.addEventListener('input', function(e){ var id = e && e.target && e.target.id; var instant = [ 'groundUpperArea','basementArea','spaceHeatName','spaceHeatType','spaceHeatValue','spaceHeatVoltage','airCondName','airCondType','airCondValue','airCondVoltage','rangeName','rangeCount','rangeWatts','interlock','tanklessWatts','storageWHWatts','evseCount','evseWatts','evems','applianceWatts','applianceName' ].indexOf(id) !== -1; if(instant) calculate(); if(id === 'spaceHeatType') updateSpaceHeatInputMode(); if(id === 'airCondType') updateAirCondInputMode(); }); }
 
+    // Ensure reset clears app state and UI beyond native form reset
+    if(calcForm){
+      calcForm.addEventListener('reset', function(e){
+        // Clear in-memory lists
+        state.appliances = [];
+        state.spaceHeat = [];
+        state.airCond = [];
+        state.ranges = [];
+        state.specialWater = [];
+
+        // Clear snapshot
+        lastCalcSnapshot = null;
+
+        // Clear displayed lists
+        renderAllLists();
+
+        // Reset displays
+        if($('pathA')) $('pathA').textContent = '0';
+        if($('pathB')) $('pathB').textContent = '0';
+        if($('calcLoad')) $('calcLoad').textContent = '0';
+        if($('minAmps')) $('minAmps').textContent = '0';
+        if($('voltsLabel')) $('voltsLabel').textContent = '240';
+        if($('livingAreaDisplay')) $('livingAreaDisplay').textContent = '--';
+        if($('exclusiveAreaDisplay')) $('exclusiveAreaDisplay').textContent = '--';
+
+        // Clear any data-autofilled attributes (from backup code)
+        ['groundUpperArea','basementArea'].forEach(function(id){ var el = $(id); if(el) el.removeAttribute('data-autofilled'); });
+
+        // Hide/clear calculated dim displays
+        if($('groundUpperCalc')) $('groundUpperCalc').textContent = '--';
+        if($('basementCalc')) $('basementCalc').textContent = '--';
+
+        // Re-run UI mode updates
+        updateSpaceHeatInputMode(); updateAirCondInputMode();
+
+        // Recalculate (form values are already reset by native reset)
+        setTimeout(calculate, 0);
+      });
+    }
+
   })();
-    
+
+})();
+
 
 
 
