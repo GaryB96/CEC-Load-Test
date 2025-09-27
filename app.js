@@ -748,25 +748,46 @@
       // Register service worker and handle update lifecycle to show banner when a new
       // service worker is waiting to activate. This ensures installed PWAs (Android)
       // are notified when a new version is available.
+      // Keep a reference to the active registration so we can message waiting worker directly
+      var swReg = null;
       if('serviceWorker' in navigator){
         // Register on load to avoid blocking initial parsing
         window.addEventListener('load', function(){
           navigator.serviceWorker.register('service-worker.js').then(function(reg){
+            swReg = reg;
             try{ console.debug('[SW] registered:', reg.scope); }catch(e){}
             // Force an update check immediately so installed PWAs fetch the latest SW
             try{ if(typeof reg.update === 'function'){ reg.update(); console.debug('[SW] called reg.update() to check for new SW'); } }catch(e){ console.debug('[SW] reg.update() failed', e); }
-            // Helper to auto-apply the waiting SW (post SKIP_WAITING and show spinner)
+            // Helper to auto-apply the waiting SW (post SKIP_WAITING to the waiting worker if available)
             function autoApplyUpdate(){
               try{
                 var reloadBtn = document.getElementById('reloadApp');
                 var dismissBtn = document.getElementById('dismissUpdate');
                 if(reloadBtn) reloadBtn.classList.add('loading');
                 if(dismissBtn) dismissBtn.disabled = true;
-                if(navigator.serviceWorker && navigator.serviceWorker.controller){
-                  navigator.serviceWorker.controller.postMessage({ type: 'SKIP_WAITING' });
+                // Prefer messaging the waiting worker directly
+                try{
+                  if(swReg && swReg.waiting && typeof swReg.waiting.postMessage === 'function'){
+                    swReg.waiting.postMessage({ type: 'SKIP_WAITING' });
+                  } else if(navigator.serviceWorker && navigator.serviceWorker.controller){
+                    navigator.serviceWorker.controller.postMessage({ type: 'SKIP_WAITING' });
+                  }
+                }catch(e){
+                  if(navigator.serviceWorker && navigator.serviceWorker.controller){
+                    navigator.serviceWorker.controller.postMessage({ type: 'SKIP_WAITING' });
+                  }
                 }
-                // fallback: reload after 8s
-                setTimeout(function(){ try{ window.location.reload(true); }catch(e){} }, 8000);
+
+                // Wait for controllerchange to reload, but don't leave spinner forever
+                var reloaded = false;
+                function onControllerChange(){ if(reloaded) return; reloaded = true; try{ 
+                  // hide the banner gracefully before reload
+                  try{ var b = document.getElementById('updateBanner'); if(b){ b.classList.remove('show'); setTimeout(function(){ b.hidden = true; }, 220); } }catch(e){}
+                  window.location.reload(true);
+                }catch(e){} }
+                navigator.serviceWorker.addEventListener('controllerchange', onControllerChange);
+                // fallback: after 12s stop the spinner, re-enable dismiss and hide banner
+                setTimeout(function(){ if(!reloaded){ try{ if(reloadBtn) reloadBtn.classList.remove('loading'); if(dismissBtn) dismissBtn.disabled = false; var b = document.getElementById('updateBanner'); if(b){ b.classList.remove('show'); setTimeout(function(){ b.hidden = true; }, 220); } }catch(e){} } }, 12000);
               }catch(e){}
             }
 
@@ -791,11 +812,11 @@
                   // If there's a controller, it means there's an active SW and the new one is waiting
                   if(navigator.serviceWorker.controller){
                     try{
-                      if(isStandalone() || isDirty){
-                        showUpdateBanner();
-                      } else {
-                        autoApplyUpdate();
-                      }
+                              if(isStandalone() || isDirty){
+                                showUpdateBanner();
+                              } else {
+                                autoApplyUpdate();
+                              }
                     }catch(e){}
                   }
                 }
