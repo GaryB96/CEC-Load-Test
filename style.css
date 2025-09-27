@@ -47,7 +47,7 @@ h1 .tag {
 
 .sub { color: var(--text-muted); margin: 0 0 1.2rem; }
 
-h2 { margin: 0; font-size: 1.2rem; font-weight: 600; color: #ecf4ff; }
+h2 { margin: 0; font-size: 1.2rem; font-weight: 600; color: #f10a0a; }
 
 .grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: var(--gap); }
 .col-12 { grid-column: span 12; } .col-6 { grid-column: span 6; } .col-4 { grid-column: span 4; }
