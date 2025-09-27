@@ -619,6 +619,10 @@
         var banner = document.getElementById('updateBanner');
         if(!banner) return;
         banner.hidden = false;
+        // trigger entrance animation
+        requestAnimationFrame(function(){
+          banner.classList.add('show');
+        });
         var reloadBtn = document.getElementById('reloadApp');
         var dismissBtn = document.getElementById('dismissUpdate');
         if(reloadBtn) reloadBtn.addEventListener('click', function(){
@@ -628,7 +632,7 @@
           }
           setTimeout(function(){ window.location.reload(true); }, 400);
         });
-        if(dismissBtn) dismissBtn.addEventListener('click', function(){ banner.hidden = true; });
+        if(dismissBtn) dismissBtn.addEventListener('click', function(){ banner.classList.remove('show'); setTimeout(function(){ banner.hidden = true; }, 220); });
       }
 
       // Listen for messages from the SW and trigger an automatic update
