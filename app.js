@@ -24,6 +24,14 @@
 
     var SQFT_PER_SQM = 10.763910416709722;
     var state = { appliances: [], spaceHeat: [], airCond: [], ranges: [], specialWater: [] };
+    // Track whether the user has made changes that might be lost by an automatic reload.
+    var isDirty = false;
+    // Helper to detect if the app is running as an installed/standalone PWA
+    function isStandalone(){
+      try{
+        return (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || window.navigator.standalone === true;
+      }catch(e){ return false; }
+    }
     var lastCalcSnapshot = null;
 
     function renderList(hostId, items, formatItem){ var host=$(hostId); if(!host) return; host.innerHTML=''; items.forEach(function(it, idx){ var row=document.createElement('div'); row.className='item'; var name=document.createElement('div'); name.textContent = formatItem.title(it); var val=document.createElement('div'); val.className='mono'; val.textContent = formatItem.value(it); var kill=document.createElement('button'); kill.className='kill'; kill.textContent='Remove'; kill.addEventListener('click', function(){ formatItem.remove(idx); renderAllLists(); calculate(); }); row.appendChild(name); row.appendChild(val); row.appendChild(kill); host.appendChild(row); }); }
@@ -535,7 +543,18 @@
     var addSpecialWaterBtn = $('addSpecialWater'); if(addSpecialWaterBtn) addSpecialWaterBtn.addEventListener('click', function(e){ e.preventDefault(); addSpecialWater(); });
     var addApplianceBtn = $('addAppliance'); if(addApplianceBtn) addApplianceBtn.addEventListener('click', function(e){ e.preventDefault(); addAppliance(); });
 
-    var calcForm = $('calcForm'); if(calcForm){ calcForm.addEventListener('input', function(e){ var id = e && e.target && e.target.id; var instant = [ 'groundUpperArea','basementArea','spaceHeatName','spaceHeatType','spaceHeatValue','spaceHeatVoltage','airCondName','airCondType','airCondValue','airCondVoltage','rangeName','rangeCount','rangeWatts','interlock','tanklessWatts','storageWHWatts','evseCount','evseWatts','evems','applianceWatts','applianceName' ].indexOf(id) !== -1; if(instant) calculate(); if(id === 'spaceHeatType') updateSpaceHeatInputMode(); if(id === 'airCondType') updateAirCondInputMode(); }); }
+    var calcForm = $('calcForm');
+    if(calcForm){
+      calcForm.addEventListener('input', function(e){
+        // mark dirty only for trusted user input events
+        try{ if(e && e.isTrusted) isDirty = true; }catch(err){}
+        var id = e && e.target && e.target.id;
+        var instant = [ 'groundUpperArea','basementArea','spaceHeatName','spaceHeatType','spaceHeatValue','spaceHeatVoltage','airCondName','airCondType','airCondValue','airCondVoltage','rangeName','rangeCount','rangeWatts','interlock','tanklessWatts','storageWHWatts','evseCount','evseWatts','evems','applianceWatts','applianceName' ].indexOf(id) !== -1;
+        if(instant) calculate();
+        if(id === 'spaceHeatType') updateSpaceHeatInputMode();
+        if(id === 'airCondType') updateAirCondInputMode();
+      });
+    }
 
     // Draft management (localStorage)
     function _serializeForm(){
@@ -736,9 +755,31 @@
             try{ console.debug('[SW] registered:', reg.scope); }catch(e){}
             // Force an update check immediately so installed PWAs fetch the latest SW
             try{ if(typeof reg.update === 'function'){ reg.update(); console.debug('[SW] called reg.update() to check for new SW'); } }catch(e){ console.debug('[SW] reg.update() failed', e); }
-            // If there's an active waiting worker, immediately notify
+            // Helper to auto-apply the waiting SW (post SKIP_WAITING and show spinner)
+            function autoApplyUpdate(){
+              try{
+                var reloadBtn = document.getElementById('reloadApp');
+                var dismissBtn = document.getElementById('dismissUpdate');
+                if(reloadBtn) reloadBtn.classList.add('loading');
+                if(dismissBtn) dismissBtn.disabled = true;
+                if(navigator.serviceWorker && navigator.serviceWorker.controller){
+                  navigator.serviceWorker.controller.postMessage({ type: 'SKIP_WAITING' });
+                }
+                // fallback: reload after 8s
+                setTimeout(function(){ try{ window.location.reload(true); }catch(e){} }, 8000);
+              }catch(e){}
+            }
+
+            // If there's an active waiting worker, decide whether to show the banner or auto-apply
             if(reg.waiting){
-              try{ showUpdateBanner(); }catch(e){}
+              try{
+                if(isStandalone() || isDirty){
+                  showUpdateBanner();
+                } else {
+                  // Auto-apply for web tabs with no unsaved changes
+                  autoApplyUpdate();
+                }
+              }catch(e){}
             }
 
             // When an update is found, listen for state changes on the new worker
@@ -749,7 +790,13 @@
                 if(newSW.state === 'installed'){
                   // If there's a controller, it means there's an active SW and the new one is waiting
                   if(navigator.serviceWorker.controller){
-                    try{ showUpdateBanner(); }catch(e){}
+                    try{
+                      if(isStandalone() || isDirty){
+                        showUpdateBanner();
+                      } else {
+                        autoApplyUpdate();
+                      }
+                    }catch(e){}
                   }
                 }
               });
