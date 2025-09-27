@@ -630,7 +630,33 @@
         var policyValue = policyEl ? policyEl.value.trim() : '';
         var datePart = inspectionValue || (new Date()).toISOString().slice(0,10);
         var defaultName = (policyValue || 'Policy') + ' - Load Test - ' + datePart + '.json';
-        var blob = new Blob([JSON.stringify({ meta: { exported: new Date().toISOString() }, data: obj }, null, 2)], { type: 'application/json' });
+        var payload = JSON.stringify({ meta: { exported: new Date().toISOString() }, data: obj }, null, 2);
+        var blob = new Blob([payload], { type: 'application/json' });
+
+        // Prefer the File System Access API to prompt the user for a save location
+        if(window.showSaveFilePicker){
+          try{
+            var opts = {
+              suggestedName: defaultName,
+              types: [{ description: 'JSON file', accept: { 'application/json': ['.json'] } }]
+            };
+            window.showSaveFilePicker(opts).then(function(handle){
+              return handle.createWritable();
+            }).then(function(writable){
+              return writable.write(blob).then(function(){ return writable.close(); });
+            }).then(function(){
+              alert('Draft saved.');
+            }).catch(function(err){
+              // If the picker was dismissed or failed, fallback to download
+              try{ console.debug('showSaveFilePicker failed, falling back:', err); }catch(e){}
+              var url = URL.createObjectURL(blob);
+              var a = document.createElement('a'); a.href = url; a.download = defaultName; document.body.appendChild(a); a.click(); setTimeout(function(){ URL.revokeObjectURL(url); a.remove(); }, 5000);
+            });
+            return;
+          }catch(e){ /* fall through to fallback */ }
+        }
+
+        // Fallback: trigger a download via an anchor (works universally)
         var url = URL.createObjectURL(blob);
         var a = document.createElement('a'); a.href = url; a.download = defaultName; document.body.appendChild(a); a.click(); setTimeout(function(){ URL.revokeObjectURL(url); a.remove(); }, 5000);
       }catch(e){ console.warn(e); alert('Export failed'); }
