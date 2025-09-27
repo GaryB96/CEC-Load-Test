@@ -1,9 +1,28 @@
 {
-  "name": "CEC Sec. 8 Single Dwelling Calculator v3",
-  "short_name": "CEC Sec8 Calc",
+  "name": "Load Test",
+  "short_name": "Load Test",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#fafafa",
   "theme_color": "#0b6ef0",
-  "icons": []
+  "icons": [
+    {
+      "src": "icons/load-home-bolt.svg",
+      "sizes": "256x256",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icons/load-home-bolt-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/load-home-bolt-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
 }
