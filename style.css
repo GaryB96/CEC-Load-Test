@@ -398,17 +398,25 @@ select option:checked {
   width: 100%;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 0.65rem;
-  background: transparent;
-  border: 0;
-  color: inherit;
-  font: inherit;
-  /* add left padding so header text doesn't sit flush against the card border */
-  padding: 0.35rem 0.85rem 0.35rem 0.85rem;
-  cursor: pointer;
-  border-radius: 10px;
+
 }
+
+/* Update banner shown when a new version is available */
+.update-banner {
+  position: fixed;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: linear-gradient(90deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
+  color: var(--text);
+  border: 1px solid rgba(255,255,255,0.06);
+  padding: 10px 14px;
+  border-radius: 10px;
+  z-index: 9999;
+  box-shadow: 0 6px 18px rgba(2,6,20,0.6);
+}
+.update-banner .update-inner { display:flex; gap:12px; align-items:center; }
+.update-banner .update-actions { display:flex; gap:8px; }
 
 .collapse-toggle:hover .chevron {
   display: inline-flex;

@@ -614,6 +614,56 @@
       });
     }
 
+      // Service worker update handling: show in-app banner when a new version is available
+      function showUpdateBanner(){
+        var banner = document.getElementById('updateBanner');
+        if(!banner) return;
+        banner.hidden = false;
+        var reloadBtn = document.getElementById('reloadApp');
+        var dismissBtn = document.getElementById('dismissUpdate');
+        if(reloadBtn) reloadBtn.addEventListener('click', function(){
+          // Ask the SW to skipWaiting
+          if(navigator.serviceWorker && navigator.serviceWorker.controller){
+            navigator.serviceWorker.controller.postMessage({ type: 'SKIP_WAITING' });
+          }
+          setTimeout(function(){ window.location.reload(true); }, 400);
+        });
+        if(dismissBtn) dismissBtn.addEventListener('click', function(){ banner.hidden = true; });
+      }
+
+      // Listen for messages from the SW and trigger an automatic update
+      if('serviceWorker' in navigator){
+        navigator.serviceWorker.addEventListener('message', function(evt){
+          try{
+            var data = evt && evt.data ? evt.data : {};
+            if(data.type === 'NEW_VERSION_AVAILABLE'){
+              // Try to immediately apply the new SW and reload when it takes control
+              try{
+                // Show the banner briefly while we attempt auto-reload
+                showUpdateBanner();
+
+                // Ask the active SW to skip waiting
+                if(navigator.serviceWorker.controller){
+                  navigator.serviceWorker.controller.postMessage({ type: 'SKIP_WAITING' });
+                }
+
+                // Reload when the controller changes (new SW has taken control)
+                var reloaded = false;
+                function onControllerChange(){
+                  if(reloaded) return;
+                  reloaded = true;
+                  window.location.reload(true);
+                }
+                navigator.serviceWorker.addEventListener('controllerchange', onControllerChange);
+
+                // Fallback: force reload after 6 seconds if controllerchange didn't fire
+                setTimeout(function(){ if(!reloaded){ reloaded = true; window.location.reload(true); } }, 6000);
+              }catch(e){ /* ignore */ }
+            }
+          }catch(e){ /* ignore */ }
+        });
+      }
+
   })();
 
 })();
