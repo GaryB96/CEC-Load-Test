@@ -626,11 +626,26 @@
         var reloadBtn = document.getElementById('reloadApp');
         var dismissBtn = document.getElementById('dismissUpdate');
         if(reloadBtn) reloadBtn.addEventListener('click', function(){
-          // Ask the SW to skipWaiting
-          if(navigator.serviceWorker && navigator.serviceWorker.controller){
-            navigator.serviceWorker.controller.postMessage({ type: 'SKIP_WAITING' });
-          }
-          setTimeout(function(){ window.location.reload(true); }, 400);
+          // When the user clicks reload, ask the SW to skipWaiting and show a spinner
+          try{
+            if(reloadBtn.classList) reloadBtn.classList.add('loading');
+            if(dismissBtn) dismissBtn.disabled = true;
+            // Ask the SW to skipWaiting
+            if(navigator.serviceWorker && navigator.serviceWorker.controller){
+              navigator.serviceWorker.controller.postMessage({ type: 'SKIP_WAITING' });
+            }
+            // Wait for the new service worker to take control
+            var reloaded = false;
+            function onControllerChange(){
+              if(reloaded) return;
+              reloaded = true;
+              // reload the page to pick up the new version
+              window.location.reload(true);
+            }
+            navigator.serviceWorker.addEventListener('controllerchange', onControllerChange);
+            // As a fallback, after 8s reload
+            setTimeout(function(){ if(!reloaded){ reloaded = true; window.location.reload(true); } }, 8000);
+          }catch(e){ /* ignore */ }
         });
         if(dismissBtn) dismissBtn.addEventListener('click', function(){ banner.classList.remove('show'); setTimeout(function(){ banner.hidden = true; }, 220); });
       }
@@ -641,27 +656,9 @@
           try{
             var data = evt && evt.data ? evt.data : {};
             if(data.type === 'NEW_VERSION_AVAILABLE'){
-              // Try to immediately apply the new SW and reload when it takes control
+              // Show the banner and let the user click Reload to apply the update
               try{
-                // Show the banner briefly while we attempt auto-reload
                 showUpdateBanner();
-
-                // Ask the active SW to skip waiting
-                if(navigator.serviceWorker.controller){
-                  navigator.serviceWorker.controller.postMessage({ type: 'SKIP_WAITING' });
-                }
-
-                // Reload when the controller changes (new SW has taken control)
-                var reloaded = false;
-                function onControllerChange(){
-                  if(reloaded) return;
-                  reloaded = true;
-                  window.location.reload(true);
-                }
-                navigator.serviceWorker.addEventListener('controllerchange', onControllerChange);
-
-                // Fallback: force reload after 6 seconds if controllerchange didn't fire
-                setTimeout(function(){ if(!reloaded){ reloaded = true; window.location.reload(true); } }, 6000);
               }catch(e){ /* ignore */ }
             }
           }catch(e){ /* ignore */ }

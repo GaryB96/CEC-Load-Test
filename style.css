@@ -457,6 +457,25 @@ select option:checked {
 .update-banner .update-inner { display:flex; gap:12px; align-items:center; }
 .update-banner .update-actions { display:flex; gap:8px; }
 
+/* Spinner shown on the reload button while the SW is activating */
+#reloadApp { position: relative; }
+#reloadApp.loading { pointer-events: none; opacity: 0.9; }
+#reloadApp.loading::after {
+  content: "";
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255,255,255,0.25);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: banner-spin 0.9s linear infinite;
+}
+
+@keyframes banner-spin { to { transform: translateY(-50%) rotate(360deg); } }
+
 .collapse-toggle:hover .chevron {
   display: inline-flex;
   width: 0.75rem;
