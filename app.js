@@ -465,9 +465,9 @@
     })();
 
     var reportBtn = $('reportBtn'); if(reportBtn) reportBtn.addEventListener('click', function(e){ e.preventDefault(); generateReport(); });
-  var saveDraftBtn = $('saveDraftBtn'); if(saveDraftBtn) saveDraftBtn.addEventListener('click', function(e){ e.preventDefault(); saveDraft(); });
-  var loadDraftBtn = $('loadDraftBtn'); if(loadDraftBtn) loadDraftBtn.addEventListener('click', function(e){ e.preventDefault(); loadDraft(); });
-  var newDraftBtn = $('newDraftBtn'); if(newDraftBtn) newDraftBtn.addEventListener('click', function(e){ e.preventDefault(); newDraft(); });
+  // Make Save/Load behave as Export/Import to keep only two actions
+  var saveDraftBtn = $('saveDraftBtn'); if(saveDraftBtn) saveDraftBtn.addEventListener('click', function(e){ e.preventDefault(); exportDraft(); });
+  var loadDraftBtn = $('loadDraftBtn'); if(loadDraftBtn) loadDraftBtn.addEventListener('click', function(e){ e.preventDefault(); importDraft(); });
     var addSpaceHeatBtn = $('addSpaceHeat'); if(addSpaceHeatBtn) addSpaceHeatBtn.addEventListener('click', function(e){ e.preventDefault(); addSpaceHeat(); });
     var addAirCondBtn = $('addAirCond'); if(addAirCondBtn) addAirCondBtn.addEventListener('click', function(e){ e.preventDefault(); addAirCond(); });
     var addRangeBtn = $('addRange'); if(addRangeBtn) addRangeBtn.addEventListener('click', function(e){ e.preventDefault(); addRange(); });
@@ -539,12 +539,33 @@
       }catch(e){ console.warn(e); alert('Failed to load draft.'); }
     }
 
-    function newDraft(){
-      if(!confirm('Start a new draft? This will clear the current form (you can save first).')) return;
-      // perform native reset and additional clears
-      if(calcForm) calcForm.reset();
-      state.appliances = []; state.spaceHeat = []; state.airCond = []; state.ranges = []; state.specialWater = [];
-      renderAllLists(); updateSpaceHeatInputMode(); updateAirCondInputMode(); setTimeout(calculate,50);
+    // newDraft removed: Reset button is the canonical way to start a new draft
+
+    function exportDraft(){
+      try{
+        var obj = _serializeForm();
+        var inspectionEl = $('inspectionDate');
+        var policyEl = $('policyNumber');
+        var inspectionValue = inspectionEl ? inspectionEl.value : '';
+        var policyValue = policyEl ? policyEl.value.trim() : '';
+        var datePart = inspectionValue || (new Date()).toISOString().slice(0,10);
+        var defaultName = (policyValue || 'Policy') + ' - Load Test - ' + datePart + '.json';
+        var blob = new Blob([JSON.stringify({ meta: { exported: new Date().toISOString() }, data: obj }, null, 2)], { type: 'application/json' });
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement('a'); a.href = url; a.download = defaultName; document.body.appendChild(a); a.click(); setTimeout(function(){ URL.revokeObjectURL(url); a.remove(); }, 5000);
+      }catch(e){ console.warn(e); alert('Export failed'); }
+    }
+
+    function importDraft(){
+      try{
+        var input = document.createElement('input'); input.type = 'file'; input.accept = '.json,application/json';
+        input.addEventListener('change', function(evt){
+          var file = input.files && input.files[0]; if(!file) return; var reader = new FileReader();
+          reader.onload = function(){ try{ var parsed = JSON.parse(reader.result); var data = parsed && parsed.data ? parsed.data : parsed; if(!confirm('Load imported draft and replace current form?')) return; _applyForm(data); alert('Imported draft applied.'); }catch(e){ console.warn(e); alert('Invalid draft file.'); } };
+          reader.readAsText(file);
+        });
+        input.click();
+      }catch(e){ console.warn(e); alert('Import failed'); }
     }
 
     // Ensure reset clears app state and UI beyond native form reset
