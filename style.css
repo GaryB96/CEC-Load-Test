@@ -503,6 +503,25 @@ select option:checked {
   .sticky-calc { position: -webkit-sticky; top: 8px; }
 }
 
-/* Make the calc controls behave like other inputs (flexible width) */
-#wattsCalcCard .row > select, #wattsCalcCard .row > input { max-width: 260px; min-width: 180px; flex: 1 1 220px; }
-#wattsCalcCard .fixed-value { background: rgba(255,255,255,0.06); color: #fff; min-width: 110px; text-align: right; }
+/* Make the inline calc controls behave like other inputs (flexible width) */
+.inline-watts .row > select, .inline-watts .row > input { max-width: 260px; min-width: 180px; flex: 1 1 220px; }
+.inline-watts .fixed-value { background: rgba(255,255,255,0.06); color: #fff; min-width: 110px; text-align: right; }
+
+/* Sticky wrapper that respects the main.wrap width and centers with content */
+.calc-sticky-wrapper {
+  position: sticky;
+  top: 12px;
+  z-index: 60;
+  display: block;
+  margin: 0 -1px 0 -1px; /* avoid visual shift with card borders */
+  /* Make the sticky wrapper visually solid when pinned */
+  background: linear-gradient(145deg, rgba(19, 45, 85, 0.98), rgba(23, 33, 60, 0.98));
+  border-radius: 10px;
+  padding: 0.55rem 0.8rem;
+  box-shadow: 0 10px 28px rgba(4, 15, 40, 0.45);
+  border: 1px solid rgba(255,255,255,0.06);
+}
+
+@media (max-width: 900px){
+  .calc-sticky-wrapper { top: 8px; }
+}
