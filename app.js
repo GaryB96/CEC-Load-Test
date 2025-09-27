@@ -660,18 +660,28 @@
           }catch(e){ /* continue to other fallbacks */ }
         }
 
-        // Try Web Share API with files (share sheet may include OneDrive or cloud targets)
+        // Try Web Share API with files (share sheet may include OneDrive or cloud targets).
+        // Use a text/plain variant (.txt) as some share targets handle plain text more reliably than application/json.
         try{
-          var fileForShare = new File([blob], defaultName, { type: 'application/json' });
-          if(navigator.canShare && navigator.canShare({ files: [fileForShare] }) && navigator.share){
-            // Ask the user explicitly so they understand the share sheet may include cloud providers like OneDrive
+          var shareNameTxt = defaultName.replace(/\.json$/i, '.txt');
+          var fileForShareTxt = new File([payload], shareNameTxt, { type: 'text/plain' });
+          // Also prepare a JSON-typed file in case targets prefer explicit JSON
+          var fileForShareJson = new File([blob], defaultName, { type: 'application/json' });
+          if(navigator.canShare && navigator.share){
             var useShare = confirm('Open the system Share sheet to save or send this draft? Some apps (OneDrive) can appear here. Choose "OK" to open Share, "Cancel" to download instead.');
             if(useShare){
               try{
-                await navigator.share({ files: [fileForShare], title: defaultName });
-                return;
+                // Try plain-text first for better compatibility with cloud storage targets
+                if(navigator.canShare({ files: [fileForShareTxt] })){
+                  await navigator.share({ files: [fileForShareTxt], title: shareNameTxt });
+                  return;
+                }
+                // Fallback to JSON-typed file if plain-text isn't accepted
+                if(navigator.canShare({ files: [fileForShareJson] })){
+                  await navigator.share({ files: [fileForShareJson], title: defaultName });
+                  return;
+                }
               }catch(shareErr){
-                // If the user cancelled or share failed, fall back to download with a helpful message
                 try{ console.debug('share failed or cancelled, falling back to download:', shareErr); }catch(e){}
                 alert('Share was cancelled or failed — the draft will be downloaded instead.');
               }
