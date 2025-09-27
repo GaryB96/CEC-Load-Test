@@ -1,3 +1,0 @@
-make the three buttons at the bottom of the report page bigger if on mobile
-
-add one more colour to something, complimentary, darker themed
