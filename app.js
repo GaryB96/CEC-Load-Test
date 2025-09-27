@@ -760,7 +760,23 @@
               try{ var reloadBtn = document.getElementById('reloadApp'); if(reloadBtn) reloadBtn.classList.remove('loading'); }catch(e){}
             }
             if(data.type === 'SKIP_WAITING_DONE'){
-              try{ var b = document.getElementById('updateBanner'); if(b){ b.classList.remove('show'); setTimeout(function(){ b.hidden = true; }, 220); } }catch(e){}
+              try{
+                var b = document.getElementById('updateBanner');
+                if(b){ b.classList.remove('show'); setTimeout(function(){ b.hidden = true; }, 220); }
+                // Force-refresh CSS to pull the newest styles without a full reload
+                try{
+                  if(typeof console !== 'undefined' && console.debug) console.debug('[SW] SKIP_WAITING_DONE received - refreshing stylesheets');
+                  var links = document.querySelectorAll('link[rel="stylesheet"]');
+                  var stamp = Date.now();
+                  Array.prototype.forEach.call(links, function(link){
+                    try{
+                      var href = link.getAttribute('href') || '';
+                      var base = href.split('?')[0];
+                      link.setAttribute('href', base + '?v=' + stamp);
+                    }catch(e){}
+                  });
+                }catch(e){}
+              }catch(e){}
             }
           }catch(e){ /* ignore */ }
         });

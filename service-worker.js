@@ -66,6 +66,20 @@ self.addEventListener('fetch', (e) => {
   // only handle GET requests
   if (req.method !== 'GET') return;
 
+  // Helper to detect CSS/JS so we can use a network-first strategy
+  function isCriticalAsset(request){
+    try{
+      var dest = request.destination || '';
+      var accept = (request.headers && request.headers.get('accept')) || '';
+      var url = request.url || '';
+      if(dest === 'style' || dest === 'script') return true;
+      if(accept.indexOf('text/css') !== -1) return true;
+      if(accept.indexOf('application/javascript') !== -1 || accept.indexOf('application/x-javascript') !== -1) return true;
+      if(url.endsWith('.css') || url.endsWith('.js')) return true;
+    }catch(err){}
+    return false;
+  }
+
   // network-first for navigation or HTML pages
   if (req.mode === 'navigate' || (req.headers.get('accept') || '').includes('text/html')) {
     e.respondWith((async () => {
@@ -88,7 +102,25 @@ self.addEventListener('fetch', (e) => {
     return;
   }
 
-  // cache-first for other requests (CSS, JS, images)
+  // For critical assets (CSS/JS) use network-first so updates are picked up
+  if(isCriticalAsset(req)){
+    e.respondWith((async () => {
+      try{
+        const networkResponse = await fetch(req);
+        // clone before doing cache writes
+        const responseClone = networkResponse.clone();
+        try{ const cache = await caches.open(CACHE_NAME); await cache.put(req, responseClone); }catch(err){}
+        return networkResponse;
+      }catch(err){
+        const cached = await caches.match(req);
+        if(cached) return cached;
+        return caches.match('./index.html');
+      }
+    })());
+    return;
+  }
+
+  // cache-first for other requests (images, fonts, etc.)
   e.respondWith((async () => {
     const cached = await caches.match(req);
     if (cached) return cached;
