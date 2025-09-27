@@ -1,8 +1,0 @@
-1. on the report page, in the area section, I'd like it to show the ground floor and upper, basement, and total square footage.
-
-2. if being used on phone or tablet, when clicking generate report, is there a way to make the page open to download it as a pdf and prefill the save name with the policy number first then 'Load Test' and the date of the inspection
-
-3. need a little watts calculator, two dropdowns, one for watts and amps, the other for 120 or 240 volts.
-
-4. add a space between the white border and the start of the section headers.
-
