@@ -669,21 +669,26 @@
           var fileForShareJson = new File([blob], defaultName, { type: 'application/json' });
           if(navigator.canShare && navigator.share){
             var useShare = confirm('Open the system Share sheet to save or send this draft? Some apps (OneDrive) can appear here. Choose "OK" to open Share, "Cancel" to download instead.');
+            var shareAttempted = false;
             if(useShare){
+              shareAttempted = true;
               try{
                 // Try plain-text first for better compatibility with cloud storage targets
                 if(navigator.canShare({ files: [fileForShareTxt] })){
                   await navigator.share({ files: [fileForShareTxt], title: shareNameTxt });
+                  try{ console.debug('[exportDraft] share succeeded (txt)'); }catch(e){}
                   return;
                 }
                 // Fallback to JSON-typed file if plain-text isn't accepted
                 if(navigator.canShare({ files: [fileForShareJson] })){
                   await navigator.share({ files: [fileForShareJson], title: defaultName });
+                  try{ console.debug('[exportDraft] share succeeded (json)'); }catch(e){}
                   return;
                 }
+                try{ console.debug('[exportDraft] navigator.canShare returned false for both variants'); }catch(e){}
               }catch(shareErr){
-                try{ console.debug('share failed or cancelled, falling back to download:', shareErr); }catch(e){}
-                alert('Share was cancelled or failed — the draft will be downloaded instead.');
+                try{ console.debug('share failed or cancelled, will fallback to download (txt) — error:', shareErr); }catch(e){}
+                alert('Share was cancelled or failed — the draft will be downloaded instead (as .txt for broader compatibility).');
               }
             }
           }
