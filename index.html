@@ -10,11 +10,11 @@
   <meta name="application-name" content="Load Test" />
   <meta name="apple-mobile-web-app-title" content="Load Test" />
   <link rel="stylesheet" href="style.css?v=20240710" />
-  <!-- App icons -->
-  <link rel="icon" href="icons/load-home-bolt.svg" type="image/svg+xml" />
-  <!-- iOS prefers PNG, but many browsers accept SVG; consider adding PNG fallbacks for best compatibility -->
-  <link rel="apple-touch-icon" href="icons/load-home-bolt.svg" />
-  <!-- Safari pinned tab / maskable icon -->
+  <!-- App icons: prefer PNG fallbacks for broad compatibility; keep SVG for mask-icon/pinned tabs -->
+  <link rel="icon" href="icons/load-home-bolt-192.png" type="image/png" sizes="192x192" />
+  <link rel="icon" href="icons/load-home-bolt-512.png" type="image/png" sizes="512x512" />
+  <link rel="apple-touch-icon" href="icons/load-home-bolt-192.png" />
+  <!-- Safari pinned tab / maskable icon (uses SVG) -->
   <link rel="mask-icon" href="icons/load-home-bolt.svg" color="#0b6ef0" />
 </head>
 <body>
