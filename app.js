@@ -796,6 +796,44 @@
             try{ console.debug('[SW] registered:', reg.scope); }catch(e){}
             // Force an update check immediately so installed PWAs fetch the latest SW
             try{ if(typeof reg.update === 'function'){ reg.update(); console.debug('[SW] called reg.update() to check for new SW'); } }catch(e){ console.debug('[SW] reg.update() failed', e); }
+
+              // Also perform a content-level check for key assets so we can
+              // show the banner when any asset (HTML/CSS/JS/manifest) changes
+              // even if the service worker script itself did not change.
+              (function(){
+                async function sha256Hex(text){
+                  try{
+                    var enc = new TextEncoder().encode(text);
+                    var buf = await (window.crypto && window.crypto.subtle ? crypto.subtle.digest('SHA-256', enc) : Promise.reject('no-subtle'));
+                    var hashArray = Array.from(new Uint8Array(buf));
+                    return hashArray.map(b=>b.toString(16).padStart(2,'0')).join('');
+                  }catch(e){ return null; }
+                }
+                async function fetchAndHash(url){
+                  try{
+                    var r = await fetch(url, { cache: 'no-cache', credentials: 'same-origin' });
+                    if(!r || !r.ok) return null;
+                    var txt = await r.text();
+                    var h = await sha256Hex(txt);
+                    return { url: url.split('?')[0], hash: h };
+                  }catch(e){ return null; }
+                }
+                async function checkForAssetUpdates(){
+                  try{
+                    var assets = ['index.html','app.js','style.css','manifest.json'];
+                    var results = await Promise.all(assets.map(function(a){ return fetchAndHash(a); }));
+                    var prev = {};
+                    try{ prev = JSON.parse(localStorage.getItem('assetHashMap') || '{}'); }catch(e){ prev = {}; }
+                    var newMap = {};
+                    var changed = false;
+                    results.forEach(function(r){ if(!r) return; newMap[r.url] = r.hash; if(prev[r.url] && prev[r.url] !== r.hash) changed = true; });
+                    try{ localStorage.setItem('assetHashMap', JSON.stringify(newMap)); }catch(e){}
+                    if(changed){ try{ console.debug('[assets] change detected, showing update banner'); showUpdateBanner(); }catch(e){} }
+                  }catch(e){ /* ignore */ }
+                }
+                // Run asset check asynchronously but don't block registration
+                try{ checkForAssetUpdates().catch(function(){}); }catch(e){}
+              })();
             // Helper to auto-apply the waiting SW (post SKIP_WAITING to the waiting worker if available)
             function autoApplyUpdate(){
               try{
