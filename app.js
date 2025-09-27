@@ -733,6 +733,9 @@
         // Register on load to avoid blocking initial parsing
         window.addEventListener('load', function(){
           navigator.serviceWorker.register('service-worker.js').then(function(reg){
+            try{ console.debug('[SW] registered:', reg.scope); }catch(e){}
+            // Force an update check immediately so installed PWAs fetch the latest SW
+            try{ if(typeof reg.update === 'function'){ reg.update(); console.debug('[SW] called reg.update() to check for new SW'); } }catch(e){ console.debug('[SW] reg.update() failed', e); }
             // If there's an active waiting worker, immediately notify
             if(reg.waiting){
               try{ showUpdateBanner(); }catch(e){}
@@ -758,6 +761,12 @@
             });
 
           }).catch(function(err){ /* ignore registration errors */ });
+          // Also attempt to update any existing registration (fallback)
+          try{
+            if(navigator.serviceWorker && navigator.serviceWorker.getRegistration){
+              navigator.serviceWorker.getRegistration().then(function(r){ if(r && typeof r.update === 'function'){ r.update().catch(function(){/* ignore */}); } }).catch(function(){/* ignore */});
+            }
+          }catch(e){}
         });
       }
 
