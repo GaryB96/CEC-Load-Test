@@ -1,7 +1,9 @@
 {
+  "id": "./",
   "name": "Load Test",
   "short_name": "Load Test",
   "start_url": "./index.html",
+  "scope": "./",
   "display": "standalone",
   "background_color": "#fafafa",
   "theme_color": "#0b6ef0",

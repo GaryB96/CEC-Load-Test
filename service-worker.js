@@ -1,4 +1,4 @@
-const CACHE_NAME = 'cec-sec8-v4';
+const CACHE_NAME = 'cec-sec8-v5';
 const ASSETS = [
   './',
   './index.html',
