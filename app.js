@@ -38,6 +38,19 @@
 
     function renderAllLists(){ renderList('spaceHeatList', state.spaceHeat, { title: function(i){ return i.label; }, value: function(i){ return i.type==='amps'? (fmtA(i.amps)+' A @ '+fmtA(i.voltage)+' V ('+fmtW(i.watts)+' W)') : (fmtW(i.watts)+' W'); }, remove: function(idx){ state.spaceHeat.splice(idx,1); } }); renderList('airCondList', state.airCond, { title: function(i){ return i.label; }, value: function(i){ return i.type==='amps'? (fmtA(i.amps)+' A @ '+fmtA(i.voltage)+' V ('+fmtW(i.watts)+' W)') : (fmtW(i.watts)+' W'); }, remove: function(idx){ state.airCond.splice(idx,1); } }); renderList('rangeList', state.ranges, { title: function(i){ return i.label; }, value: function(i){ return i.count + ' x ' + fmtW(i.watts) + ' W'; }, remove: function(idx){ state.ranges.splice(idx,1); } }); renderList('specialWaterList', state.specialWater, { title: function(i){ return i.name; }, value: function(i){ return fmtW(i.watts) + ' W'; }, remove: function(idx){ state.specialWater.splice(idx,1); } }); renderList('applianceList', state.appliances, { title: function(i){ return i.name; }, value: function(i){ return fmtW(i.watts) + ' W'; }, remove: function(idx){ state.appliances.splice(idx,1); } }); }
 
+    // Small, ephemeral toast for quick user feedback
+    function showToast(msg, duration){
+      try{
+        var el = document.getElementById('appToast');
+        if(!el){ return; }
+        el.textContent = msg;
+        el.style.display = 'block';
+        el.style.opacity = '1';
+        // Simple fade-out after duration
+        setTimeout(function(){ try{ el.style.transition = 'opacity 420ms ease'; el.style.opacity = '0'; setTimeout(function(){ el.style.display = 'none'; el.style.transition = ''; }, 420); }catch(e){} }, duration || 2200);
+      }catch(e){}
+    }
+
     function updateSpaceHeatInputMode(){ var t=$('spaceHeatType'), v=$('spaceHeatValue'), u=$('spaceHeatVoltage'); if(!t||!v||!u) return; if(t.value==='amps'){ u.style.display=''; u.disabled=false; v.placeholder='Amps'; } else { u.style.display='none'; u.disabled=true; v.placeholder='Watts'; } }
     function updateAirCondInputMode(){ var t=$('airCondType'), v=$('airCondValue'), u=$('airCondVoltage'); if(!t||!v||!u) return; if(t.value==='amps'){ u.style.display=''; u.disabled=false; v.placeholder='Amps'; } else { u.style.display='none'; u.disabled=true; v.placeholder='Watts'; } }
 
@@ -538,7 +551,27 @@
     var reportBtn = $('reportBtn'); if(reportBtn) reportBtn.addEventListener('click', function(e){ e.preventDefault(); generateReport(); });
   // Make Save/Load behave as Export/Import to keep only two actions
   var saveDraftBtn = $('saveDraftBtn'); if(saveDraftBtn) saveDraftBtn.addEventListener('click', function(e){ e.preventDefault(); exportDraft(); });
-  var shareDraftBtn = $('shareDraftBtn'); if(shareDraftBtn) shareDraftBtn.addEventListener('click', function(e){ e.preventDefault(); shareDraft(); });
+  var shareDraftBtn = $('shareDraftBtn');
+  if(shareDraftBtn){
+    shareDraftBtn.addEventListener('click', function(e){
+      try{ console.log('[UI] shareDraftBtn clicked'); }catch(_){}
+      e.preventDefault();
+      try{ shareDraft(); }catch(err){ console.warn('shareDraft() failed to run', err); }
+    });
+  }
+  // Delegated fallback: catch clicks on the document in case the element wasn't present
+  // when the above wiring ran (defensive). This will also help diagnostics.
+  document.addEventListener('click', function(e){
+    try{
+      var t = e && e.target;
+      if(!t) return;
+      if(t.id === 'shareDraftBtn' || (t.closest && t.closest('#shareDraftBtn'))){
+        try{ console.log('[UI-delegated] shareDraftBtn clicked (delegated)'); }catch(_){}
+        e.preventDefault();
+        try{ shareDraft(); }catch(err){ console.warn('shareDraft() failed in delegated handler', err); }
+      }
+    }catch(_){ /* ignore */ }
+  });
   var loadDraftBtn = $('loadDraftBtn'); if(loadDraftBtn) loadDraftBtn.addEventListener('click', function(e){ e.preventDefault(); importDraft(); });
     var addSpaceHeatBtn = $('addSpaceHeat'); if(addSpaceHeatBtn) addSpaceHeatBtn.addEventListener('click', function(e){ e.preventDefault(); addSpaceHeat(); });
     var addAirCondBtn = $('addAirCond'); if(addAirCondBtn) addAirCondBtn.addEventListener('click', function(e){ e.preventDefault(); addAirCond(); });
@@ -722,7 +755,8 @@
         var filename = defaultName;
         var text = payload;
 
-        console.debug('shareDraft: preparing share', { filename });
+  console.debug('shareDraft: preparing share', { filename });
+  try{ showToast('Opening share sheet…', 3000); }catch(e){}
 
         // Prefer sharing a file when supported
         try{
@@ -731,17 +765,25 @@
             if(navigator.canShare({ files: [file] })){
               await navigator.share({ files: [file], title: 'CEC Draft' });
               console.debug('shareDraft: share() succeeded with file');
+              try{ showToast('Shared to app (choose OneDrive if available)', 2500); }catch(e){}
               return { method: 'share', fileType: 'text' };
             }
           }
           // Some platforms allow share with text payload only
           if(navigator.share){
-            try{ await navigator.share({ title: 'CEC Draft', text: text }); console.debug('shareDraft: share() succeeded with text payload'); return { method: 'share', fileType: 'text' }; }catch(e){ console.debug('shareDraft: share(text) rejected', e); }
+            try{ await navigator.share({ title: 'CEC Draft', text: text }); console.debug('shareDraft: share() succeeded with text payload'); try{ showToast('Shared text to app',2000); }catch(e){}; return { method: 'share', fileType: 'text' }; }catch(e){ console.debug('shareDraft: share(text) rejected', e); }
           }
         }catch(e){ console.debug('shareDraft: navigator.share/canShare threw', e); }
 
+        // If navigator.share wasn't present at all, give immediate feedback in UI so the user knows share isn't supported
+        if(!navigator.share){
+          try{ showToast('Share not supported — downloading .txt for manual upload', 3000); }catch(e){}
+          try{ console.debug('shareDraft: navigator.share not available, performing download fallback'); }catch(e){}
+        }
+
         // Final fallback: download .txt
-        console.debug('shareDraft: falling back to download');
+  console.debug('shareDraft: falling back to download');
+  try{ showToast('Downloading draft as .txt', 2200); }catch(e){}
         var blob = new Blob([text], { type: 'text/plain' });
         var url = URL.createObjectURL(blob);
         var a = document.createElement('a'); a.href = url; a.download = filename; document.body.appendChild(a); a.click(); setTimeout(function(){ URL.revokeObjectURL(url); a.remove(); }, 5000);

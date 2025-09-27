@@ -720,3 +720,17 @@ select option:checked {
   border-radius: 8px;
   color: var(--text-muted);
 }
+
+/* Minimal toast used for short in-app notifications (non-interrupting) */
+#appToast {
+  min-width: 160px;
+  max-width: 90vw;
+  background: rgba(20,30,50,0.92);
+  color: var(--text);
+  padding: 10px 14px;
+  border-radius: 10px;
+  text-align: center;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.6);
+  font-weight: 600;
+  pointer-events: none;
+}
