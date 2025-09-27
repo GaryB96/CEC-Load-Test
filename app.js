@@ -213,8 +213,18 @@
     .totals-table th { width: 60%; }
     .totals-highlight { font-weight: 700; }
     .notes { font-size: 0.85rem; color: #333; margin-top: 0.6rem; }
-    /* Toolbar styling and hide rules */
-    #report-toolbar { display: block; }
+
+    /* Toolbar base styling */
+    #report-toolbar { display: flex; align-items: center; gap: 8px; }
+    #report-toolbar button { padding: 6px 10px; font-size: 0.95rem; border-radius: 6px; cursor: pointer; }
+
+    /* Make toolbar buttons larger and easier to tap on small screens */
+    @media (max-width: 600px) {
+      #report-toolbar { flex-direction: column; align-items: stretch; }
+      /* override inline styles (padding/margin) so buttons expand on mobile */
+      #report-toolbar button { padding: 12px 14px !important; font-size: 1.05rem !important; width: 100% !important; margin-right: 0 !important; }
+    }
+
     @media print {
       /* Hide the toolbar when printing */
       #report-toolbar { display: none !important; }
