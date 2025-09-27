@@ -520,11 +520,22 @@ select option:checked {
 
 .collapse-body {
   margin-top: 0.9rem;
+  /* Animated open/close using max-height to allow smooth slide */
+  max-height: 2000px; /* large default to allow content */
+  opacity: 1;
+  /* slower, smoother animation */
+  transition: max-height 1000ms cubic-bezier(.2,.9,.2,1), opacity 700ms ease;
+  overflow: hidden;
 }
 
-.collapsible.collapsed .collapse-body,
-.collapse-body[hidden] {
-  display: none;
+.collapsible.collapsed .collapse-body {
+  max-height: 0;
+  opacity: 0;
+}
+
+/* while actively animating we can set a smoother timing */
+.collapse-body.collapsing {
+  transition: max-height 1080ms cubic-bezier(.2,.9,.2,1), opacity 760ms ease;
 }
 
 

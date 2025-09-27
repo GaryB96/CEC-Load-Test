@@ -43,7 +43,68 @@
 
     function addAppliance(){ var n=$('applianceName'), w=$('applianceWatts'); if(!n||!w) return; var name = n.value.trim(); var watts = parseFloat(w.value); if(!name||isNaN(watts)||watts<=0) return; state.appliances.push({ name: name, watts: Math.round(watts) }); n.value=''; w.value=''; renderAllLists(); calculate(); }
 
-    function setupCollapsibles(){ var sections=document.querySelectorAll('fieldset.collapsible'); Array.prototype.forEach.call(sections, function(fieldset){ var toggle=fieldset.querySelector('.collapse-toggle'); var body=fieldset.querySelector('.collapse-body'); if(!toggle||!body) return; var expanded = toggle.getAttribute('aria-expanded') !== 'false'; if(!expanded){ fieldset.classList.add('collapsed'); body.hidden = true; } toggle.addEventListener('click', function(){ var isCollapsed = fieldset.classList.toggle('collapsed'); var expandedNow = !isCollapsed; toggle.setAttribute('aria-expanded', expandedNow ? 'true' : 'false'); body.hidden = !expandedNow; }); }); }
+    function setupCollapsibles(){
+      var sections = document.querySelectorAll('fieldset.collapsible');
+      console.debug('[setupCollapsibles] found sections:', sections.length);
+      Array.prototype.forEach.call(sections, function(fieldset){
+        var toggle = fieldset.querySelector('.collapse-toggle');
+        var body = fieldset.querySelector('.collapse-body');
+        if(!toggle || !body) return;
+
+        // Debug: report and ensure body is visible to allow transitions
+        try{ if (body.hasAttribute && body.hasAttribute('hidden')){ console.debug('[setupCollapsibles] removing hidden from', body.id || body.className); body.removeAttribute('hidden'); } }catch(e){ console.debug('[setupCollapsibles] hidden remove failed', e); }
+
+        // Initialize based on aria-expanded
+        var expanded = toggle.getAttribute('aria-expanded') === 'true';
+        if(expanded){
+          fieldset.classList.remove('collapsed');
+          body.style.maxHeight = (body.scrollHeight || 0) + 'px';
+          body.style.opacity = '1';
+        } else {
+          fieldset.classList.add('collapsed');
+          body.style.maxHeight = '0px';
+          body.style.opacity = '0';
+        }
+      });
+
+      // Single delegated handler for all toggles
+      document.addEventListener('click', function(e){
+        // Debug: trace click events near toggles
+        try{ var closest = e.target && e.target.closest ? e.target.closest('.collapse-toggle') : null; if(closest) console.debug('[setupCollapsibles] toggle clicked for', closest.getAttribute('aria-controls')); }catch(err){}
+        try{
+          var btn = e.target && e.target.closest ? e.target.closest('.collapse-toggle') : null;
+          if(!btn) return;
+          e.preventDefault();
+          var fieldset = btn.closest('fieldset.collapsible');
+          if(!fieldset) return;
+          var body = fieldset.querySelector('.collapse-body');
+          if(!body) return;
+
+          var isCollapsed = fieldset.classList.contains('collapsed');
+          if(isCollapsed){
+            // open
+            fieldset.classList.remove('collapsed');
+            btn.setAttribute('aria-expanded','true');
+            body.classList.add('collapsing');
+            body.style.maxHeight = '';
+            var full = body.scrollHeight || 0;
+            body.style.maxHeight = '0px';
+            body.style.opacity = '0';
+            requestAnimationFrame(function(){ body.style.maxHeight = full + 'px'; body.style.opacity = '1'; });
+            body.addEventListener('transitionend', function te(ev){ if(ev.propertyName.indexOf('max-height')===-1) return; body.classList.remove('collapsing'); body.style.maxHeight = ''; body.removeEventListener('transitionend', te); });
+          } else {
+            // close
+            fieldset.classList.add('collapsed');
+            btn.setAttribute('aria-expanded','false');
+            body.classList.add('collapsing');
+            var full = body.scrollHeight || 0;
+            body.style.maxHeight = full + 'px';
+            requestAnimationFrame(function(){ body.style.maxHeight = '0px'; body.style.opacity = '0'; });
+            body.addEventListener('transitionend', function te(ev){ if(ev.propertyName.indexOf('max-height')===-1) return; body.classList.remove('collapsing'); body.removeEventListener('transitionend', te); });
+          }
+        }catch(err){ /* ignore */ }
+      });
+    }
 
     // Watts calculator wiring
     function setupWattsCalc(){
