@@ -60,9 +60,14 @@ self.addEventListener('fetch', (e) => {
     e.respondWith((async () => {
       try {
         const networkResponse = await fetch(req);
-        // update cache in background
-        const cache = await caches.open(CACHE_NAME);
-        cache.put(req, networkResponse.clone()).catch(() => {});
+        // clone before doing any async cache work to avoid body-use races
+        const responseClone = networkResponse.clone();
+        try {
+          const cache = await caches.open(CACHE_NAME);
+          await cache.put(req, responseClone);
+        } catch (err) {
+          // ignore cache write errors
+        }
         return networkResponse;
       } catch (err) {
         const cached = await caches.match('./index.html');
@@ -73,14 +78,22 @@ self.addEventListener('fetch', (e) => {
   }
 
   // cache-first for other requests (CSS, JS, images)
-  e.respondWith(
-    caches.match(req).then((resp) => resp || fetch(req).then((r) => {
-      // populate cache for future
-      caches.open(CACHE_NAME).then(cache => cache.put(req, r.clone()));
-      return r;
-    })).catch(() => {
-      // final fallback: try index.html for navigation fallback
+  e.respondWith((async () => {
+    const cached = await caches.match(req);
+    if (cached) return cached;
+    try {
+      const networkResponse = await fetch(req);
+      // clone before any awaits
+      const responseClone = networkResponse.clone();
+      try {
+        const cache = await caches.open(CACHE_NAME);
+        await cache.put(req, responseClone);
+      } catch (err) {
+        // ignore caching errors
+      }
+      return networkResponse;
+    } catch (err) {
       return caches.match('./index.html');
-    })
-  );
+    }
+  })());
 });
