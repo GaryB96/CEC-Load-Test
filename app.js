@@ -630,8 +630,13 @@
         var policyValue = policyEl ? policyEl.value.trim() : '';
         var datePart = inspectionValue || (new Date()).toISOString().slice(0,10);
         var defaultName = (policyValue || 'Policy') + ' - Load Test - ' + datePart + '.json';
-        var payload = JSON.stringify({ meta: { exported: new Date().toISOString() }, data: obj }, null, 2);
-        var blob = new Blob([payload], { type: 'application/json' });
+  var payload = JSON.stringify({ meta: { exported: new Date().toISOString() }, data: obj }, null, 2);
+  var jsonBlob = new Blob([payload], { type: 'application/json' });
+  var txtBlob = new Blob([payload], { type: 'text/plain' });
+  // keep 'blob' name for existing save-file-picker usage (use JSON by default)
+  var blob = jsonBlob;
+  // track whether the user explicitly attempted sharing so we can choose .txt fallback
+  var shareAttempted = false;
 
         // Prefer the File System Access API to prompt the user for a save location
         if(window.showSaveFilePicker){
@@ -695,8 +700,12 @@
         }catch(e){ /* ignore share errors */ }
 
         // Final fallback: trigger a download via an anchor (works universally)
-        var url = URL.createObjectURL(blob);
-        var a = document.createElement('a'); a.href = url; a.download = defaultName; document.body.appendChild(a); a.click(); setTimeout(function(){ URL.revokeObjectURL(url); a.remove(); }, 5000);
+        try{
+          var chosenBlob = shareAttempted ? txtBlob : jsonBlob;
+          var chosenName = shareAttempted ? defaultName.replace(/\.json$/i, '.txt') : defaultName;
+          var url = URL.createObjectURL(chosenBlob);
+          var a = document.createElement('a'); a.href = url; a.download = chosenName; document.body.appendChild(a); a.click(); setTimeout(function(){ URL.revokeObjectURL(url); a.remove(); }, 5000);
+        }catch(e){ console.warn('fallback download failed', e); }
       }catch(e){ console.warn(e); alert('Export failed'); }
     }
 
