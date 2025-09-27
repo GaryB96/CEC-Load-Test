@@ -6,6 +6,8 @@
   --text: #f2f6ff;
   --text-muted: #a9b9da;
   --accent: #3d9bff;
+  /* New darker complementary accent for deeper contrast */
+  --accent-dark: #2a4e7a;
   --accent-secondary: #9a6bff;
   --accent-soft: rgba(61, 155, 255, 0.22);
   --border: rgba(255,255,255,0.08);
@@ -36,8 +38,8 @@ h1 { margin: 0 0 0.35rem; font-weight: 600; font-size: clamp(1.7rem, 2.2vw, 2.2r
 h1 .tag {
   font-size: 0.75rem;
   background: rgba(61,155,255,0.18);
-  color: var(--accent);
-  border: 1px solid rgba(61,155,255,0.45);
+  color: var(--accent-dark);
+  border: 1px solid rgba(42,78,122,0.3);
   border-radius: 999px;
   padding: 0.15rem 0.55rem;
   margin-left: 0.55rem;
@@ -65,7 +67,7 @@ h2 { margin: 0; font-size: 1.2rem; font-weight: 600; color: #ecf4ff; }
   position: absolute;
   inset: 0;
   border-radius: inherit;
-  border: 1px solid rgba(154,107,255,0.18);
+  border: 1px solid rgba(42,78,122,0.16);
   pointer-events: none;
 }
 
@@ -122,8 +124,8 @@ select:focus {
 
 .btn {
   border-radius: 11px;
-  border: 1px solid rgba(61,155,255,0.45);
-  background: linear-gradient(135deg, rgba(61,155,255,0.32), rgba(154,107,255,0.18));
+  border: 1px solid rgba(42,78,122,0.34);
+  background: linear-gradient(135deg, rgba(61,155,255,0.32), rgba(42,78,122,0.18));
   color: var(--text);
   padding: 0.6rem 1.15rem;
   font-weight: 600;
@@ -157,7 +159,8 @@ select:focus {
 .btn:hover {
   transform: translateY(-1px);
   background: linear-gradient(135deg, rgba(61,155,255,0.45), rgba(154,107,255,0.28));
-  box-shadow: 0 10px 28px rgba(154,107,255,0.28);
+  /* use the new darker accent in the shadow for a richer, darker theme */
+  box-shadow: 0 10px 28px rgba(42,78,122,0.45);
 }
 
 .btn:active { transform: translateY(0); }
@@ -197,7 +200,7 @@ select:focus {
 }
 
 .result {
-  background: linear-gradient(135deg, rgba(61,155,255,0.85), rgba(154,107,255,0.68));
+  background: linear-gradient(135deg, rgba(61,155,255,0.85), rgba(42,78,122,0.78));
   color: #fff;
 }
 
@@ -228,8 +231,8 @@ select:focus {
   flex-wrap: wrap;
   padding: 0.9rem 1.1rem;
   border-radius: 12px;
-  background: rgba(61,155,255,0.16);
-  border: 1px solid rgba(154,107,255,0.3);
+  background: linear-gradient(180deg, rgba(42,78,122,0.08), rgba(27,45,75,0.06));
+  border: 1px solid rgba(42,78,122,0.18);
 }
 
 .computed-areas > div { min-width: 160px; }
@@ -260,7 +263,7 @@ input[type="number"]::-webkit-inner-spin-button {
   margin: 0;
 }
 
-input[type="number"] { -moz-appearance: textfield; }
+input[type="number"] { appearance: textfield; -moz-appearance: textfield; }
 
 select {
   background-image: linear-gradient(45deg, transparent 50%, rgba(255,255,255,0.4) 50%), linear-gradient(135deg, rgba(255,255,255,0.4) 50%, transparent 50%);
