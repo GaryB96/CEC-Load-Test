@@ -152,7 +152,7 @@
         var _inc = document.getElementById('includeNotes');
         var _notes = document.getElementById('systemNotes');
         includeNotesChecked = _inc ? !!_inc.checked : false;
-        notesForReport = (_notes && includeNotesChecked) ? escapeHtml(_notes.value) : '';
+  notesForReport = (_notes && includeNotesChecked) ? escapeHtml(_notes.value).replace(/\r?\n/g, '<br>') : '';
       } catch (e) { /* ignore if DOM not available */ }
       
 
@@ -223,6 +223,20 @@
     .totals-table th { width: 60%; }
     .totals-highlight { font-weight: 700; }
     .notes { font-size: 0.85rem; color: #333; margin-top: 0.6rem; }
+
+    /* Light box for system notes for readability */
+    .notes-box {
+      background: #fbfcfe;
+      border: 1px solid #e6ecf6;
+      padding: 12px 14px;
+      border-radius: 8px;
+      color: #111;
+      font-size: 0.95rem;
+      line-height: 1.45;
+      box-shadow: 0 6px 18px rgba(12,22,40,0.06);
+      white-space: pre-wrap;
+      word-wrap: break-word;
+    }
 
     /* Toolbar base styling */
     #report-toolbar { display: flex; align-items: center; gap: 8px; }
@@ -353,7 +367,7 @@
     Report generated on ${escapeHtml(new Date().toLocaleString())}.
   </div>
   
-  ${ notesForReport ? ('<section class="report-section"><div class="section-title">System notes</div><div class="notes">' + notesForReport + '</div></section>') : '' }
+  ${ notesForReport ? ('<section class="report-section"><div class="section-title">System notes</div><div class="notes-box">' + notesForReport + '</div></section>') : '' }
 
   <div style="margin-top:12px;">
     <div id="report-toolbar" style="margin-bottom:12px;">
@@ -451,6 +465,9 @@
     })();
 
     var reportBtn = $('reportBtn'); if(reportBtn) reportBtn.addEventListener('click', function(e){ e.preventDefault(); generateReport(); });
+  var saveDraftBtn = $('saveDraftBtn'); if(saveDraftBtn) saveDraftBtn.addEventListener('click', function(e){ e.preventDefault(); saveDraft(); });
+  var loadDraftBtn = $('loadDraftBtn'); if(loadDraftBtn) loadDraftBtn.addEventListener('click', function(e){ e.preventDefault(); loadDraft(); });
+  var newDraftBtn = $('newDraftBtn'); if(newDraftBtn) newDraftBtn.addEventListener('click', function(e){ e.preventDefault(); newDraft(); });
     var addSpaceHeatBtn = $('addSpaceHeat'); if(addSpaceHeatBtn) addSpaceHeatBtn.addEventListener('click', function(e){ e.preventDefault(); addSpaceHeat(); });
     var addAirCondBtn = $('addAirCond'); if(addAirCondBtn) addAirCondBtn.addEventListener('click', function(e){ e.preventDefault(); addAirCond(); });
     var addRangeBtn = $('addRange'); if(addRangeBtn) addRangeBtn.addEventListener('click', function(e){ e.preventDefault(); addRange(); });
@@ -458,6 +475,77 @@
     var addApplianceBtn = $('addAppliance'); if(addApplianceBtn) addApplianceBtn.addEventListener('click', function(e){ e.preventDefault(); addAppliance(); });
 
     var calcForm = $('calcForm'); if(calcForm){ calcForm.addEventListener('input', function(e){ var id = e && e.target && e.target.id; var instant = [ 'groundUpperArea','basementArea','spaceHeatName','spaceHeatType','spaceHeatValue','spaceHeatVoltage','airCondName','airCondType','airCondValue','airCondVoltage','rangeName','rangeCount','rangeWatts','interlock','tanklessWatts','storageWHWatts','evseCount','evseWatts','evems','applianceWatts','applianceName' ].indexOf(id) !== -1; if(instant) calculate(); if(id === 'spaceHeatType') updateSpaceHeatInputMode(); if(id === 'airCondType') updateAirCondInputMode(); }); }
+
+    // Draft management (localStorage)
+    function _serializeForm(){
+      var obj = {};
+      // simple input values
+      ['inspectionDate','policyNumber','groundUpperArea','basementArea','tanklessWatts','storageWHWatts','evseCount','evseWatts','interlock'].forEach(function(id){ var el=$(id); obj[id] = el ? el.value : ''; });
+      // arrays / lists
+      obj.state = { appliances: state.appliances.slice(), spaceHeat: state.spaceHeat.slice(), airCond: state.airCond.slice(), ranges: state.ranges.slice(), specialWater: state.specialWater.slice() };
+      // area dimension inputs
+      ['groundUpperLength','groundUpperWidth','basementLength','basementWidth'].forEach(function(id){ var el=$(id); obj[id] = el ? el.value : ''; });
+      // notes and toggle
+      var notesEl = $('systemNotes'); obj.systemNotes = notesEl ? notesEl.value : '';
+      var includeEl = $('includeNotes'); obj.includeNotes = includeEl ? !!includeEl.checked : false;
+      return obj;
+    }
+
+    function _applyForm(obj){
+      if(!obj) return;
+      ['inspectionDate','policyNumber','groundUpperArea','basementArea','tanklessWatts','storageWHWatts','evseCount','evseWatts','interlock'].forEach(function(id){ var el=$(id); if(el) el.value = obj[id] || ''; });
+      ['groundUpperLength','groundUpperWidth','basementLength','basementWidth'].forEach(function(id){ var el=$(id); if(el) el.value = obj[id] || ''; });
+      // restore lists
+      state.appliances = (obj.state && obj.state.appliances) ? obj.state.appliances.slice() : [];
+      state.spaceHeat = (obj.state && obj.state.spaceHeat) ? obj.state.spaceHeat.slice() : [];
+      state.airCond = (obj.state && obj.state.airCond) ? obj.state.airCond.slice() : [];
+      state.ranges = (obj.state && obj.state.ranges) ? obj.state.ranges.slice() : [];
+      state.specialWater = (obj.state && obj.state.specialWater) ? obj.state.specialWater.slice() : [];
+      var notesEl = $('systemNotes'); if(notesEl) notesEl.value = obj.systemNotes || '';
+      var includeEl = $('includeNotes'); if(includeEl) includeEl.checked = !!obj.includeNotes;
+      renderAllLists(); updateSpaceHeatInputMode(); updateAirCondInputMode(); setTimeout(calculate,50);
+    }
+
+    function saveDraft(){
+      try{
+        var inspectionEl = $('inspectionDate');
+        var policyEl = $('policyNumber');
+        var inspectionValue = inspectionEl ? inspectionEl.value : '';
+        var policyValue = policyEl ? policyEl.value.trim() : '';
+        var datePart = inspectionValue || (new Date()).toISOString().slice(0,10);
+        var defaultName = (policyValue || 'Policy') + ' - Load Test - ' + datePart;
+        var key = 'cec-drafts';
+        var store = JSON.parse(localStorage.getItem(key) || '{}');
+        var name = prompt('Save draft as (enter a short name):', defaultName);
+        if(!name) return; name = name.trim(); if(!name) return;
+        if(store[name] && !confirm('A draft named "' + name + '" already exists. Overwrite?')) return;
+        store[name] = { saved: new Date().toISOString(), data: _serializeForm() };
+        localStorage.setItem(key, JSON.stringify(store));
+        alert('Draft saved: ' + name);
+      }catch(e){ console.warn(e); alert('Failed to save draft.'); }
+    }
+
+    function loadDraft(){
+      try{
+        var key = 'cec-drafts';
+        var store = JSON.parse(localStorage.getItem(key) || '{}');
+        var names = Object.keys(store);
+        if(names.length === 0){ alert('No drafts saved.'); return; }
+        var choice = prompt('Available drafts:\n' + names.join('\n') + '\n\nEnter exact name to load:');
+        if(!choice) return; choice = choice.trim(); if(!store[choice]){ alert('No draft found with that name.'); return; }
+        if(!confirm('Replace current form with draft "' + choice + '"?')) return;
+        _applyForm(store[choice].data);
+        alert('Draft loaded: ' + choice);
+      }catch(e){ console.warn(e); alert('Failed to load draft.'); }
+    }
+
+    function newDraft(){
+      if(!confirm('Start a new draft? This will clear the current form (you can save first).')) return;
+      // perform native reset and additional clears
+      if(calcForm) calcForm.reset();
+      state.appliances = []; state.spaceHeat = []; state.airCond = []; state.ranges = []; state.specialWater = [];
+      renderAllLists(); updateSpaceHeatInputMode(); updateAirCondInputMode(); setTimeout(calculate,50);
+    }
 
     // Ensure reset clears app state and UI beyond native form reset
     if(calcForm){
