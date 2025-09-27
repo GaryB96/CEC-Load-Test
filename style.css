@@ -401,6 +401,34 @@ select option:checked {
 
 }
 
+/* Collapse toggle should look like a transparent, theme-aware button
+   — avoid default browser button backgrounds (white) by forcing
+   background, border and color to match the dark theme. */
+.collapse-toggle {
+  background: transparent;
+  border: 0;
+  /* Use the purple accent used earlier for legends so headers match the original look */
+  color: var(--accent-secondary);
+  padding: 0.45rem 0.5rem;
+  border-radius: 10px;
+  gap: 0.5rem;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.collapse-toggle span {
+  color: inherit;
+}
+
+.collapse-toggle:hover {
+  background: rgba(154,107,255,0.04); /* subtle purple-tinted hover */
+  color: rgba(154,107,255,0.98);
+}
+
+.collapse-toggle:active {
+  background: rgba(255,255,255,0.03);
+}
+
 /* Update banner shown when a new version is available */
 .update-banner {
   position: fixed;
