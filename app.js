@@ -550,7 +550,6 @@
 
     var reportBtn = $('reportBtn'); if(reportBtn) reportBtn.addEventListener('click', function(e){ e.preventDefault(); generateReport(); });
   // Make Save/Load behave as Export/Import to keep only two actions
-  var saveDraftBtn = $('saveDraftBtn'); if(saveDraftBtn) saveDraftBtn.addEventListener('click', function(e){ e.preventDefault(); exportDraft(); });
   var shareDraftBtn = $('shareDraftBtn');
   if(shareDraftBtn){
     shareDraftBtn.addEventListener('click', function(e){
@@ -750,9 +749,14 @@
       try{
         var obj = _serializeForm();
         var payload = JSON.stringify({ meta: { exported: new Date().toISOString() }, data: obj }, null, 2);
-        var datePart = (new Date()).toISOString().slice(0,10);
-        var defaultName = 'CEC Draft - ' + datePart + '.txt';
-        var filename = defaultName;
+  // Build filename using policy and inspection date to match export behavior
+  var inspectionEl = document.getElementById('inspectionDate');
+  var policyEl = document.getElementById('policyNumber');
+  var inspectionValue = inspectionEl ? inspectionEl.value : '';
+  var policyValue = policyEl ? (policyEl.value || '').trim() : '';
+  var datePart = inspectionValue || (new Date()).toISOString().slice(0,10);
+  var defaultName = (policyValue || 'Policy') + ' - Load Test - ' + datePart + '.txt';
+  var filename = defaultName;
         var text = payload;
 
   console.debug('shareDraft: preparing share', { filename });
