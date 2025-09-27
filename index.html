@@ -278,6 +278,30 @@
         </div>
       </fieldset>
 
+            <fieldset class="stack collapsible">
+        <legend>
+    <button class="collapse-toggle" type="button" aria-expanded="false" aria-controls="section-notes">
+            <span>Notes</span>
+            <span class="chevron" aria-hidden="true"></span>
+          </button>
+        </legend>
+  <div class="collapse-body" id="section-notes" hidden>
+          <div class="grid">
+            <div class="col-12">
+              <label for="systemNotes">Notes</label>
+              <textarea id="systemNotes" placeholder="Add notes about the system or inspection..." rows="5"></textarea>
+              <div class="row toggle-row" style="align-items:center;">
+                <label class="switch" for="includeNotes" style="margin:0;">
+                  <input id="includeNotes" type="checkbox" />
+                  <span class="slider" aria-hidden="true"></span>
+                </label>
+                <label for="includeNotes" style="margin:0;font-weight:600;color:var(--text);">Include in report</label>
+              </div>
+            </div>
+          </div>
+        </div>
+      </fieldset>
+
       <div class="row action-row">
               <button id="reportBtn" class="btn secondary" type="button">Generate Report</button>
         <button id="resetBtn" class="btn" type="reset">Reset</button>

@@ -145,6 +145,16 @@
       var policyValue = policyEl ? policyEl.value.trim() : '';
       var inspectionDisplay = formatInspectionDate(inspectionValue) || 'Not provided';
       var policyDisplay = policyValue ? escapeHtml(policyValue) : 'Not provided';
+      // Capture notes inclusion and value prior to generating the report HTML
+      var includeNotesChecked = false;
+      var notesForReport = '';
+      try {
+        var _inc = document.getElementById('includeNotes');
+        var _notes = document.getElementById('systemNotes');
+        includeNotesChecked = _inc ? !!_inc.checked : false;
+        notesForReport = (_notes && includeNotesChecked) ? escapeHtml(_notes.value) : '';
+      } catch (e) { /* ignore if DOM not available */ }
+      
 
       function fmtW(n){ return new Intl.NumberFormat().format(Math.round(n)); }
       function fmtA(n){ return new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 }).format(n); }
@@ -342,6 +352,8 @@
   <div class="notes">
     Report generated on ${escapeHtml(new Date().toLocaleString())}.
   </div>
+  
+  ${ notesForReport ? ('<section class="report-section"><div class="section-title">System notes</div><div class="notes">' + notesForReport + '</div></section>') : '' }
 
   <div style="margin-top:12px;">
     <div id="report-toolbar" style="margin-bottom:12px;">
@@ -408,6 +420,7 @@
   })();
 </script>
 </html>`;
+      
 
       reportWindow.document.open();
       reportWindow.document.write(reportHtml);
@@ -449,6 +462,10 @@
     // Ensure reset clears app state and UI beyond native form reset
     if(calcForm){
       calcForm.addEventListener('reset', function(e){
+        // Clear notes and include toggle
+        var notesEl = $('systemNotes'); if(notesEl) notesEl.value = '';
+        var includeEl = $('includeNotes'); if(includeEl) includeEl.checked = false;
+
         // Clear in-memory lists
         state.appliances = [];
         state.spaceHeat = [];
@@ -477,6 +494,8 @@
         // Hide/clear calculated dim displays
         if($('groundUpperCalc')) $('groundUpperCalc').textContent = '--';
         if($('basementCalc')) $('basementCalc').textContent = '--';
+
+        
 
         // Re-run UI mode updates
         updateSpaceHeatInputMode(); updateAirCondInputMode();
