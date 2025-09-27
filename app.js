@@ -621,7 +621,7 @@
 
     // newDraft removed: Reset button is the canonical way to start a new draft
 
-    function exportDraft(){
+    async function exportDraft(){
       try{
         var obj = _serializeForm();
         var inspectionEl = $('inspectionDate');
@@ -640,23 +640,40 @@
               suggestedName: defaultName,
               types: [{ description: 'JSON file', accept: { 'application/json': ['.json'] } }]
             };
-            window.showSaveFilePicker(opts).then(function(handle){
-              return handle.createWritable();
-            }).then(function(writable){
-              return writable.write(blob).then(function(){ return writable.close(); });
-            }).then(function(){
+            try{
+              var handle = await window.showSaveFilePicker(opts);
+              var writable = await handle.createWritable();
+              await writable.write(blob);
+              await writable.close();
               alert('Draft saved.');
-            }).catch(function(err){
-              // If the picker was dismissed or failed, fallback to download
-              try{ console.debug('showSaveFilePicker failed, falling back:', err); }catch(e){}
-              var url = URL.createObjectURL(blob);
-              var a = document.createElement('a'); a.href = url; a.download = defaultName; document.body.appendChild(a); a.click(); setTimeout(function(){ URL.revokeObjectURL(url); a.remove(); }, 5000);
-            });
-            return;
-          }catch(e){ /* fall through to fallback */ }
+              return;
+            }catch(err){
+              // If the user cancelled the picker, don't fall back to an automatic download
+              if(err && (err.name === 'AbortError' || err.name === 'NotAllowedError')){
+                try{ console.debug('User cancelled save picker'); }catch(e){}
+                alert('Save cancelled');
+                return;
+              }
+              try{ console.debug('showSaveFilePicker failed, will try share/fallback:', err); }catch(e){}
+              // otherwise fall through to share/anchor fallback
+            }
+          }catch(e){ /* continue to other fallbacks */ }
         }
 
-        // Fallback: trigger a download via an anchor (works universally)
+        // Try Web Share API with files (share sheet may include OneDrive or cloud targets)
+        try{
+          var fileForShare = new File([blob], defaultName, { type: 'application/json' });
+          if(navigator.canShare && navigator.canShare({ files: [fileForShare] }) && navigator.share){
+            try{
+              await navigator.share({ files: [fileForShare], title: defaultName });
+              return;
+            }catch(shareErr){
+              try{ console.debug('share failed, falling back to download:', shareErr); }catch(e){}
+            }
+          }
+        }catch(e){ /* ignore share errors */ }
+
+        // Final fallback: trigger a download via an anchor (works universally)
         var url = URL.createObjectURL(blob);
         var a = document.createElement('a'); a.href = url; a.download = defaultName; document.body.appendChild(a); a.click(); setTimeout(function(){ URL.revokeObjectURL(url); a.remove(); }, 5000);
       }catch(e){ console.warn(e); alert('Export failed'); }
