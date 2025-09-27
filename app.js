@@ -664,11 +664,17 @@
         try{
           var fileForShare = new File([blob], defaultName, { type: 'application/json' });
           if(navigator.canShare && navigator.canShare({ files: [fileForShare] }) && navigator.share){
-            try{
-              await navigator.share({ files: [fileForShare], title: defaultName });
-              return;
-            }catch(shareErr){
-              try{ console.debug('share failed, falling back to download:', shareErr); }catch(e){}
+            // Ask the user explicitly so they understand the share sheet may include cloud providers like OneDrive
+            var useShare = confirm('Open the system Share sheet to save or send this draft? Some apps (OneDrive) can appear here. Choose "OK" to open Share, "Cancel" to download instead.');
+            if(useShare){
+              try{
+                await navigator.share({ files: [fileForShare], title: defaultName });
+                return;
+              }catch(shareErr){
+                // If the user cancelled or share failed, fall back to download with a helpful message
+                try{ console.debug('share failed or cancelled, falling back to download:', shareErr); }catch(e){}
+                alert('Share was cancelled or failed — the draft will be downloaded instead.');
+              }
             }
           }
         }catch(e){ /* ignore share errors */ }
@@ -830,6 +836,17 @@
       // are notified when a new version is available.
       // Keep a reference to the active registration so we can message waiting worker directly
       var swReg = null;
+      // Version display helper: update the footer version text
+      function setAppVersion(ver){
+        try{
+          var el = document.getElementById('appVersion');
+          if(el){ el.textContent = 'v' + String(ver); }
+        }catch(e){}
+      }
+      // Expose a simple global setter so you can change major/minor/patch from the console or other scripts
+      try{ window.setAppVersion = setAppVersion; }catch(e){}
+      // Initialize version (patch-level increments should update the third number)
+      try{ setAppVersion('1.0.1'); }catch(e){}
       if('serviceWorker' in navigator){
         // Register on load to avoid blocking initial parsing
         window.addEventListener('load', function(){

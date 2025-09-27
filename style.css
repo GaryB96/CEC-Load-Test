@@ -696,3 +696,21 @@ select option:checked {
 @media (max-width: 900px){
   .calc-sticky-wrapper { top: 8px; }
 }
+
+/* Footer / version display */
+.site-footer {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 6px clamp(1.2rem, 1.5vw, 2rem);
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+.site-footer .version {
+  background: transparent;
+  padding: 6px 8px;
+  border-radius: 8px;
+  color: var(--text-muted);
+}
