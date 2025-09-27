@@ -710,21 +710,35 @@
           try{
             if(reloadBtn.classList) reloadBtn.classList.add('loading');
             if(dismissBtn) dismissBtn.disabled = true;
-            // Ask the SW to skipWaiting
-            if(navigator.serviceWorker && navigator.serviceWorker.controller){
-              navigator.serviceWorker.controller.postMessage({ type: 'SKIP_WAITING' });
+
+            // Prefer messaging the waiting worker directly (swReg is set after registration)
+            try{
+              if(typeof console !== 'undefined' && console.debug) console.debug('[SW] reload clicked - attempting to post SKIP_WAITING');
+              if(window.swReg && window.swReg.waiting && typeof window.swReg.waiting.postMessage === 'function'){
+                if(typeof console !== 'undefined' && console.debug) console.debug('[SW] posting SKIP_WAITING to waiting worker');
+                window.swReg.waiting.postMessage({ type: 'SKIP_WAITING' });
+              } else if(navigator.serviceWorker && navigator.serviceWorker.controller){
+                if(typeof console !== 'undefined' && console.debug) console.debug('[SW] posting SKIP_WAITING to controller (fallback)');
+                navigator.serviceWorker.controller.postMessage({ type: 'SKIP_WAITING' });
+              } else {
+                if(typeof console !== 'undefined' && console.debug) console.debug('[SW] no waiting worker or controller to message');
+              }
+            }catch(e){
+              try{ if(navigator.serviceWorker && navigator.serviceWorker.controller) navigator.serviceWorker.controller.postMessage({ type: 'SKIP_WAITING' }); }catch(_){}
             }
-            // Wait for the new service worker to take control
+
+            // Wait for controllerchange to reload, but keep a fallback to stop spinner and hide the banner
             var reloaded = false;
             function onControllerChange(){
               if(reloaded) return;
               reloaded = true;
-              // reload the page to pick up the new version
-              window.location.reload(true);
+              try{ var b = document.getElementById('updateBanner'); if(b){ b.classList.remove('show'); setTimeout(function(){ b.hidden = true; }, 220); } }catch(e){}
+              try{ window.location.reload(true); }catch(e){}
             }
             navigator.serviceWorker.addEventListener('controllerchange', onControllerChange);
-            // As a fallback, after 8s reload
-            setTimeout(function(){ if(!reloaded){ reloaded = true; window.location.reload(true); } }, 8000);
+
+            // fallback: after 12s stop spinner, re-enable dismiss and hide banner (do not force reload)
+            setTimeout(function(){ if(!reloaded){ try{ if(reloadBtn) reloadBtn.classList.remove('loading'); if(dismissBtn) dismissBtn.disabled = false; var b = document.getElementById('updateBanner'); if(b){ b.classList.remove('show'); setTimeout(function(){ b.hidden = true; }, 220); } }catch(e){} } }, 12000);
           }catch(e){ /* ignore */ }
         });
         if(dismissBtn) dismissBtn.addEventListener('click', function(){ banner.classList.remove('show'); setTimeout(function(){ banner.hidden = true; }, 220); });
@@ -741,6 +755,13 @@
                 showUpdateBanner();
               }catch(e){ /* ignore */ }
             }
+            // Handle skipWaiting acknowledgements so we can stop spinner early
+            if(data.type === 'SKIP_WAITING_ACK'){
+              try{ var reloadBtn = document.getElementById('reloadApp'); if(reloadBtn) reloadBtn.classList.remove('loading'); }catch(e){}
+            }
+            if(data.type === 'SKIP_WAITING_DONE'){
+              try{ var b = document.getElementById('updateBanner'); if(b){ b.classList.remove('show'); setTimeout(function(){ b.hidden = true; }, 220); } }catch(e){}
+            }
           }catch(e){ /* ignore */ }
         });
       }
@@ -755,6 +776,7 @@
         window.addEventListener('load', function(){
           navigator.serviceWorker.register('service-worker.js').then(function(reg){
             swReg = reg;
+            try{ window.swReg = reg; }catch(e){}
             try{ console.debug('[SW] registered:', reg.scope); }catch(e){}
             // Force an update check immediately so installed PWAs fetch the latest SW
             try{ if(typeof reg.update === 'function'){ reg.update(); console.debug('[SW] called reg.update() to check for new SW'); } }catch(e){ console.debug('[SW] reg.update() failed', e); }

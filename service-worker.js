@@ -41,7 +41,20 @@ self.addEventListener('message', (e) => {
   try{
     const data = e && e.data ? e.data : {};
     if(data && data.type === 'SKIP_WAITING'){
-      self.skipWaiting();
+      // Notify the sender that we received the skip request
+      try{
+        if(e.source && typeof e.source.postMessage === 'function'){
+          e.source.postMessage({ type: 'SKIP_WAITING_ACK' });
+        }
+      }catch(err){}
+      Promise.resolve().then(function(){
+        return self.skipWaiting();
+      }).then(function(){
+        // After skipWaiting resolves, inform all clients (activation will follow)
+        try{
+          self.clients.matchAll({ includeUncontrolled: true }).then(function(all){ all.forEach(function(c){ try{ c.postMessage({ type: 'SKIP_WAITING_DONE' }); }catch(e){} }); }).catch(function(){});
+        }catch(e){}
+      }).catch(function(){/* ignore */});
     }
   }catch(err){ /* ignore */ }
 });
