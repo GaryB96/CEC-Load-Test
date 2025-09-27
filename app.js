@@ -726,6 +726,41 @@
         });
       }
 
+      // Register service worker and handle update lifecycle to show banner when a new
+      // service worker is waiting to activate. This ensures installed PWAs (Android)
+      // are notified when a new version is available.
+      if('serviceWorker' in navigator){
+        // Register on load to avoid blocking initial parsing
+        window.addEventListener('load', function(){
+          navigator.serviceWorker.register('service-worker.js').then(function(reg){
+            // If there's an active waiting worker, immediately notify
+            if(reg.waiting){
+              try{ showUpdateBanner(); }catch(e){}
+            }
+
+            // When an update is found, listen for state changes on the new worker
+            reg.addEventListener('updatefound', function(){
+              var newSW = reg.installing;
+              if(!newSW) return;
+              newSW.addEventListener('statechange', function(){
+                if(newSW.state === 'installed'){
+                  // If there's a controller, it means there's an active SW and the new one is waiting
+                  if(navigator.serviceWorker.controller){
+                    try{ showUpdateBanner(); }catch(e){}
+                  }
+                }
+              });
+            });
+
+            // Listen for controllerchange to reload when the user triggers skipWaiting
+            navigator.serviceWorker.addEventListener('controllerchange', function(){
+              // The page will reload when the user clicks Reload (we already wire this in showUpdateBanner)
+            });
+
+          }).catch(function(err){ /* ignore registration errors */ });
+        });
+      }
+
   })();
 
 })();

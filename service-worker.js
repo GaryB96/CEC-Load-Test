@@ -11,8 +11,6 @@ const ASSETS = [
 ];
 
 self.addEventListener('install', (e) => {
-  // Activate this SW as soon as it's finished installing
-  self.skipWaiting();
   e.waitUntil(
     caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS))
   );
