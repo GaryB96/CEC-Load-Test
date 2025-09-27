@@ -164,6 +164,8 @@
         }
       }
 
+      // ...existing code...
+
       var btn = document.getElementById(buttonId);
       if(btn){
         btn.addEventListener('click', function(e){ e && e.preventDefault(); handleClick(); });
@@ -536,6 +538,7 @@
     var reportBtn = $('reportBtn'); if(reportBtn) reportBtn.addEventListener('click', function(e){ e.preventDefault(); generateReport(); });
   // Make Save/Load behave as Export/Import to keep only two actions
   var saveDraftBtn = $('saveDraftBtn'); if(saveDraftBtn) saveDraftBtn.addEventListener('click', function(e){ e.preventDefault(); exportDraft(); });
+  var shareDraftBtn = $('shareDraftBtn'); if(shareDraftBtn) shareDraftBtn.addEventListener('click', function(e){ e.preventDefault(); shareDraft(); });
   var loadDraftBtn = $('loadDraftBtn'); if(loadDraftBtn) loadDraftBtn.addEventListener('click', function(e){ e.preventDefault(); importDraft(); });
     var addSpaceHeatBtn = $('addSpaceHeat'); if(addSpaceHeatBtn) addSpaceHeatBtn.addEventListener('click', function(e){ e.preventDefault(); addSpaceHeat(); });
     var addAirCondBtn = $('addAirCond'); if(addAirCondBtn) addAirCondBtn.addEventListener('click', function(e){ e.preventDefault(); addAirCond(); });
@@ -707,6 +710,43 @@
           var a = document.createElement('a'); a.href = url; a.download = chosenName; document.body.appendChild(a); a.click(); setTimeout(function(){ URL.revokeObjectURL(url); a.remove(); }, 5000);
         }catch(e){ console.warn('fallback download failed', e); }
       }catch(e){ console.warn(e); alert('Export failed'); }
+    }
+
+    // Share the current draft via the Web Share API (prefer text/plain). Falls back to download if share isn't available.
+    async function shareDraft(){
+      try{
+        var obj = _serializeForm();
+        var payload = JSON.stringify({ meta: { exported: new Date().toISOString() }, data: obj }, null, 2);
+        var datePart = (new Date()).toISOString().slice(0,10);
+        var defaultName = 'CEC Draft - ' + datePart + '.txt';
+        var filename = defaultName;
+        var text = payload;
+
+        console.debug('shareDraft: preparing share', { filename });
+
+        // Prefer sharing a file when supported
+        try{
+          if(navigator.canShare && navigator.share){
+            var file = new File([text], filename, { type: 'text/plain' });
+            if(navigator.canShare({ files: [file] })){
+              await navigator.share({ files: [file], title: 'CEC Draft' });
+              console.debug('shareDraft: share() succeeded with file');
+              return { method: 'share', fileType: 'text' };
+            }
+          }
+          // Some platforms allow share with text payload only
+          if(navigator.share){
+            try{ await navigator.share({ title: 'CEC Draft', text: text }); console.debug('shareDraft: share() succeeded with text payload'); return { method: 'share', fileType: 'text' }; }catch(e){ console.debug('shareDraft: share(text) rejected', e); }
+          }
+        }catch(e){ console.debug('shareDraft: navigator.share/canShare threw', e); }
+
+        // Final fallback: download .txt
+        console.debug('shareDraft: falling back to download');
+        var blob = new Blob([text], { type: 'text/plain' });
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement('a'); a.href = url; a.download = filename; document.body.appendChild(a); a.click(); setTimeout(function(){ URL.revokeObjectURL(url); a.remove(); }, 5000);
+        return { method: 'download', fileType: 'text' };
+      }catch(err){ console.debug('shareDraft: unexpected error', err); return { method: 'error', error: err }; }
     }
 
     function importDraft(){

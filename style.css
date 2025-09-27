@@ -172,6 +172,12 @@ select:focus {
 
 .btn:active { transform: translateY(0); }
 
+.share-hint {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin-top: 0.35rem;
+}
+
 .help { font-size: 0.85rem; color: var(--text-muted); margin-top: 0.3rem; }
 
 .list { display: grid; gap: 0.55rem; }
