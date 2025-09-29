@@ -338,9 +338,13 @@
       #report-toolbar { display: none !important; }
       /* Ensure consistent page padding for printed output */
       /* Give pages a little extra top margin so headings aren't flush to the edge */
-  /* Slightly larger top margin to avoid headings sitting flush at page top */
-  @page { margin: 1.2in 0.75in 0.75in 0.75in; }
-      body { padding: 0.75in; }
+  /* Reduce top margin and remove extra body padding for print so pages aren't overly spaced */
+  @page { margin: 0.9in 0.75in 0.6in 0.75in; }
+    body { padding: 0; }
+      /* Keep the report header compact on the first page */
+      .report-header { page-break-inside: avoid; break-inside: avoid; margin-top: 0; padding-top: 0; }
+      .report-header h1 { margin-top: 0; margin-bottom: 0.25rem; }
+      .report-header .meta { margin-top: 0.05rem; }
   /* Ensure sensible automatic page breaks and avoid splitting rows/sections when possible */
   table { page-break-before: auto; page-break-after: auto; }
   thead { display: table-header-group; }
@@ -352,6 +356,8 @@
     Do NOT force sections to start on their own page (that made the PDF very long). */
   .notes-box { page-break-inside: avoid; break-inside: avoid; }
   .report-section { /* prefer not to split a section, but do not force a page break */ page-break-inside: avoid; break-inside: avoid; }
+  /* Keep the header meta block (inspection date + policy) together on the same page */
+  .meta { page-break-inside: avoid; break-inside: avoid; }
   /* Avoid leaving a section heading alone at the bottom of a page */
   .section-title { page-break-after: avoid; break-after: avoid; }
   .section-title { orphans: 2; widows: 2; padding-bottom: 0.15rem; display: block; break-before: avoid; }
@@ -363,17 +369,21 @@
     -webkit-column-break-inside: avoid; -webkit-region-break-inside: avoid;
     page-break-inside: avoid; break-inside: avoid; break-after: avoid; page-break-after: avoid;
   }
+  /* Optional dynamic page-break class (added by script when a section would be orphaned) */
+  .page-break-before-if-needed { page-break-before: always; break-before: always; }
       /* Small tolerance for very long tables: prefer not to orphan a single row - keep at least 2 rows together */
       tr { orphans: 2; widows: 2; }
     }
   </style>
 </head>
 <body>
-  <h1>Load Calculation Report</h1>
-  <div class="meta">
-    <div class="meta-item"><span class="meta-label">Inspection date:</span><span>${escapeHtml(inspectionDisplay)}</span></div>
-    <div class="meta-item"><span class="meta-label">Policy:</span><span>${policyDisplay}</span></div>
-  </div>
+    <div class="report-header">
+      <h1>Load Calculation Report</h1>
+      <div class="meta">
+        <div class="meta-item"><span class="meta-label">Inspection date:</span><span>${escapeHtml(inspectionDisplay)}</span></div>
+        <div class="meta-item"><span class="meta-label">Policy:</span><span>${policyDisplay}</span></div>
+      </div>
+    </div>
 
   <section class="report-section">
     <div class="section-block">
@@ -550,9 +560,35 @@
       var toolbar = document.getElementById('report-toolbar');
       var prevDisplay = null;
       if(toolbar){ prevDisplay = toolbar.style.display; toolbar.style.display = 'none'; }
+      // Heuristic: mark sections that would otherwise be orphaned.
+      // We'll compute visible page height and add a helper class to force a page break
+      // before any .report-section whose top is within the bottom N pixels.
+      function markOrphanSectionsIfNeeded(){
+        try{
+          // Clear any previous markers
+          var prev = document.querySelectorAll('.page-break-before-if-needed');
+          for(var i=0;i<prev.length;i++) prev[i].classList.remove('page-break-before-if-needed');
+          var pageHeight = window.innerHeight || document.documentElement.clientHeight || 1122; // fallback
+          // Conservative threshold (in pixels) from bottom of page where a heading would be orphaned
+          // Lowered to 110 to reduce chances of creating a near-empty first page.
+          var threshold = 110;
+          var sections = document.querySelectorAll('.report-section');
+          for(var i=0;i<sections.length;i++){
+            // Never force a page-break-before for the very first section (keeps title + meta on page 1)
+            if(i===0) continue;
+            var rect = sections[i].getBoundingClientRect();
+            // If the section top falls within the last threshold px of the page, mark it
+            if(rect.top > 0 && rect.top >= (pageHeight - threshold)){
+              sections[i].classList.add('page-break-before-if-needed');
+            }
+          }
+        }catch(e){ /* ignore measurement errors */ }
+      }
       loadHtml2Pdf(function(err){
         if(err){ console.warn('html2pdf load failed', err); if(toolbar) toolbar.style.display = prevDisplay || ''; setStatus('Could not load PDF library; opening print dialog.'); window.print(); return; }
         try{
+          // Try to mark orphan-prone sections before rendering PDF
+          markOrphanSectionsIfNeeded();
           html2pdf().set({ filename: filename, pagebreak: { mode: 'css', avoid: ['.report-table', '.notes-box', 'tr', '.section-block'] } }).from(document.body).save().then(function(){
             setStatus('Download started');
             if(toolbar) toolbar.style.display = prevDisplay || '';
