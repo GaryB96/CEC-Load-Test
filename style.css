@@ -425,6 +425,12 @@ select option:checked {
 #spaceHeatVoltage,
 #airCondVoltage { max-width: 200px; }
 
+/* Small gap between add controls and the list when the list follows the input controls
+   (applies across all collapsible sections where .split is used) */
+.collapse-body .split + .list {
+  margin-top: 0.35rem;
+}
+
 .collapsible legend {
   margin: 0;
   padding: 0;

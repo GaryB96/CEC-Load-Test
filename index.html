@@ -127,7 +127,6 @@
           <div class="grid">
                     <div class="col-12">
                       <label>Electric space heating loads</label>
-                      <div id="spaceHeatList" class="list"></div>
                       <div class="split">
                         <div class="row">
                           <input id="spaceHeatName" type="text" placeholder="Appliance Name" />
@@ -140,11 +139,11 @@
                         </div>
                         <button class="btn" id="addSpaceHeat" type="button">Add</button>
                       </div>
+                      <div id="spaceHeatList" class="list"></div>
                       <p class="help">Enter each heating appliance by watts or by amps @ voltage; loads are counted at 100%.</p>
                     </div>
                     <div class="col-12">
                       <label>Air conditioning loads</label>
-                      <div id="airCondList" class="list"></div>
                       <div class="split">
                         <div class="row">
                           <input id="airCondName" type="text" placeholder="Appliance Name" />
@@ -157,6 +156,7 @@
                         </div>
                         <button class="btn" id="addAirCond" type="button">Add</button>
                       </div>
+                      <div id="airCondList" class="list"></div>
                       <p class="help">Enter each cooling appliance by watts or by amps @ voltage.</p>
                     </div>
                     <div class="col-4">
@@ -181,7 +181,6 @@
           <div class="grid">
                     <div class="col-12">
                       <label>Ranges</label>
-                      <div id="rangeList" class="list"></div>
                       <div class="split">
                         <div class="row">
                           <input id="rangeName" type="text" placeholder="e.g., Kitchen range" />
@@ -190,6 +189,7 @@
                         </div>
                         <button class="btn" id="addRange" type="button">Add</button>
                       </div>
+                      <div id="rangeList" class="list"></div>
                       <p class="help">Demand per 8-200(1)(a)(iv): 6000 W for each range + 40% of any nameplate over 12 000 W.</p>
                     </div>
                   </div>
@@ -216,7 +216,6 @@
             </div>
             <div class="col-12">
               <label>Steamers / pools / hot tubs / spas</label>
-              <div id="specialWaterList" class="list"></div>
               <div class="split">
                 <div class="row">
                   <input id="specialWaterName" type="text" placeholder="e.g., Spa heater" />
@@ -224,6 +223,7 @@
                 </div>
                 <button class="btn" id="addSpecialWater" type="button">Add</button>
               </div>
+              <div id="specialWaterList" class="list"></div>
               <p class="help">Add each dedicated heater separately so they can be tracked individually.</p>
             </div>
           </div>
@@ -266,7 +266,6 @@
           </button>
         </legend>
   <div class="collapse-body" id="section-appliances" hidden>
-          <div id="applianceList" class="list"></div>
                   <div class="split">
                     <div class="row">
                       <input id="applianceName" type="text" placeholder="e.g., Dryer" />
@@ -274,6 +273,7 @@
                     </div>
                     <button class="btn" id="addAppliance">Add</button>
                   </div>
+                  <div id="applianceList" class="list"></div>
                   <p class="help">If a range is provided, include 25% of each listed load. If no range, include 100% of the first 6000 W combined + 25% of the remainder.</p>
         </div>
       </fieldset>
