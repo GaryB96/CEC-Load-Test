@@ -326,6 +326,14 @@
     #report-toolbar { display: flex; align-items: center; gap: 8px; }
     #report-toolbar button { padding: 6px 10px; font-size: 0.95rem; border-radius: 6px; cursor: pointer; }
 
+   /* PDF-mode (screen) styling: applied only when generating the PDF download
+     This gives colored emphasis for the downloaded PDF while allowing
+     @media print rules to force black-and-white for physical printing. */
+   .pdf-mode .totals-highlight { color: #d9534f; background: rgba(217,83,79,0.08); }
+   .pdf-mode .section-title { color: #2a5db0; }
+   .pdf-mode .notes-box { background: #fff8e6; border-color: #f0e6c8; color: #222; }
+   .pdf-mode .report-table th { background: #f1f8ff; }
+
     /* Make toolbar buttons larger and easier to tap on small screens */
     @media (max-width: 600px) {
       #report-toolbar { flex-direction: column; align-items: stretch; }
@@ -374,30 +382,51 @@
       /* Small tolerance for very long tables: prefer not to orphan a single row - keep at least 2 rows together */
       tr { orphans: 2; widows: 2; }
     }
+        /* Strong black-and-white forcing for print: best-effort via CSS. Note: final
+           output may still depend on the user's printer settings (some printers may
+           ignore color-forcing). These rules remove background colors and convert
+           imagery to greyscale so printed output is monochrome where possible. */
+        @media print {
+          /* Make all text black and remove colored backgrounds/shadows */
+          * { color: #000 !important; background: transparent !important; background-color: transparent !important; box-shadow: none !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+          /* Ensure tables and borders remain visible in black */
+          th, td { color: #000 !important; background: transparent !important; border-color: #000 !important; }
+          .notes-box { background: #fff !important; color: #000 !important; border-color: #000 !important; box-shadow: none !important; }
+          .totals-highlight { color: #000 !important; font-weight: 700 !important; background: transparent !important; }
+          img { filter: grayscale(100%) contrast(90%) !important; }
+          a, .meta-label { color: #000 !important; }
+        }
   </style>
 </head>
 <body>
-    <div class="report-header">
-      <h1>Load Calculation Report</h1>
-      <div class="meta">
-        <div class="meta-item"><span class="meta-label">Inspection date:</span><span>${escapeHtml(inspectionDisplay)}</span></div>
-        <div class="meta-item"><span class="meta-label">Policy:</span><span>${policyDisplay}</span></div>
-      </div>
-    </div>
+  <!-- Centered A4-like sheet to give the report window a printed-page appearance -->
+  <div id="report-toolbar" style="display:flex;justify-content:flex-end;padding:12px 32px;">
+    <!-- toolbar buttons are added below inside the document body script; this is a placeholder for layout -->
+  </div>
 
-  <section class="report-section">
-    <div class="section-block">
-      <div class="section-title">Area Summary</div>
-      <div class="section-inner">
-      <table class="report-table">
-      <thead><tr><th scope="col">Item</th><th scope="col">Value</th></tr></thead>
-      <tbody>
-        ${areaRows.join('\n        ')}
-      </tbody>
-      </table>
+  <div class="sheet-viewport" style="display:flex;justify-content:center;padding:24px 20px;background:#efefef;min-height:100vh;box-sizing:border-box;">
+    <div class="sheet" role="document" style="width:210mm;max-width:100%;background:#fff;box-shadow:0 12px 40px rgba(0,0,0,0.18);border:1px solid #ddd;padding:28mm 20mm;box-sizing:border-box;">
+      <div class="report-header">
+        <h1>Load Calculation Report</h1>
+        <div class="meta">
+          <div class="meta-item"><span class="meta-label">Inspection date:</span><span>${escapeHtml(inspectionDisplay)}</span></div>
+          <div class="meta-item"><span class="meta-label">Policy:</span><span>${policyDisplay}</span></div>
+        </div>
       </div>
-    </div>
-  </section>
+
+    <section class="report-section">
+      <div class="section-block">
+        <div class="section-title">Area Summary</div>
+        <div class="section-inner">
+        <table class="report-table">
+        <thead><tr><th scope="col">Item</th><th scope="col">Value</th></tr></thead>
+        <tbody>
+          ${areaRows.join('\n        ')}
+        </tbody>
+        </table>
+        </div>
+      </div>
+    </section>
 
   <section class="report-section">
     <div class="section-block">
@@ -520,14 +549,11 @@
   
   ${ notesForReport ? ('<section class="report-section"><div class="section-title">System notes</div><div class="notes-box">' + notesForReport + '</div></section>') : '' }
 
-  <div style="margin-top:12px;">
-    <div id="report-toolbar" style="margin-bottom:12px;">
-      <button id="downloadPdf" style="margin-right:8px;padding:6px 10px">Download PDF</button>
-      <button id="printBtn" style="margin-right:8px;padding:6px 10px">Print</button>
-      <button id="closeBtn" style="padding:6px 10px">Close</button>
-      <span id="reportStatus" style="margin-left:12px;font-size:.95rem;color:#333"></span>
-    </div>
-  </div>
+      <div style="margin-top:12px;">
+        <div id="reportStatus" style="margin-left:12px;font-size:.95rem;color:#333"></div>
+      </div>
+    </div> <!-- /.sheet -->
+  </div> <!-- /.sheet-viewport -->
 
 </body>
 <script>
@@ -589,11 +615,20 @@
         try{
           // Try to mark orphan-prone sections before rendering PDF
           markOrphanSectionsIfNeeded();
-          html2pdf().set({ filename: filename, pagebreak: { mode: 'css', avoid: ['.report-table', '.notes-box', 'tr', '.section-block'] } }).from(document.body).save().then(function(){
+          // Add a temporary class so the screen/PDF rendering can show color
+          // emphasis while the @media print rules below will still force
+          // black-and-white when the user actually prints the document.
+          try{ document.documentElement.classList.add('pdf-mode'); }catch(e){}
+
+          // Prefer rendering the .sheet element so html2pdf captures the A4 page only
+          var sheetEl = document.querySelector('.sheet') || document.body;
+          html2pdf().set({ filename: filename, pagebreak: { mode: 'css', avoid: ['.report-table', '.notes-box', 'tr', '.section-block'] } }).from(sheetEl).save().then(function(){
             setStatus('Download started');
+            try{ document.documentElement.classList.remove('pdf-mode'); }catch(e){}
             if(toolbar) toolbar.style.display = prevDisplay || '';
           }).catch(function(err){
             console.warn('html2pdf failed', err);
+            try{ document.documentElement.classList.remove('pdf-mode'); }catch(e){}
             if(toolbar) toolbar.style.display = prevDisplay || '';
             setStatus('PDF generation failed; opening print dialog.');
             window.print();
@@ -602,9 +637,50 @@
       });
     }
 
-    document.getElementById('downloadPdf').addEventListener('click', function(){ doDownload(); });
-    document.getElementById('printBtn').addEventListener('click', function(){ setStatus('Opening print dialog...'); setTimeout(function(){ window.print(); }, 50); });
-    document.getElementById('closeBtn').addEventListener('click', function(){ try{ window.close(); }catch(e){ /* ignore */ } });
+    // Create toolbar buttons dynamically (they live outside the .sheet so printing the sheet
+    // doesn't include the controls). This makes the report window look like a physical page.
+    (function createToolbar(){
+      try{
+        var toolbar = document.getElementById('report-toolbar');
+        if(!toolbar){
+          toolbar = document.createElement('div');
+          toolbar.id = 'report-toolbar';
+          document.body.insertBefore(toolbar, document.body.firstChild);
+        }
+        toolbar.style.display = 'flex';
+        toolbar.style.gap = '8px';
+        toolbar.style.alignItems = 'center';
+
+        var downloadBtn = document.createElement('button');
+        downloadBtn.id = 'downloadPdf';
+        downloadBtn.textContent = 'Download PDF';
+        downloadBtn.style.padding = '8px 12px';
+        downloadBtn.addEventListener('click', function(){ doDownload(); });
+
+        var printBtn = document.createElement('button');
+        printBtn.id = 'printBtn';
+        printBtn.textContent = 'Print';
+        printBtn.style.padding = '8px 12px';
+        printBtn.addEventListener('click', function(){ setStatus('Opening print dialog...'); setTimeout(function(){ window.print(); }, 50); });
+
+        var closeBtn = document.createElement('button');
+        closeBtn.id = 'closeBtn';
+        closeBtn.textContent = 'Close';
+        closeBtn.style.padding = '8px 12px';
+        closeBtn.addEventListener('click', function(){ try{ window.close(); }catch(e){ /* ignore */ } });
+
+        // Insert toolbar controls (left-aligned by default) and keep status to the right
+        toolbar.appendChild(downloadBtn);
+        toolbar.appendChild(printBtn);
+        toolbar.appendChild(closeBtn);
+
+        // move the status element into the toolbar on the right
+        if(statusEl){
+          statusEl.style.marginLeft = '12px';
+          toolbar.appendChild(statusEl);
+        }
+      }catch(e){ /* ignore toolbar creation errors */ }
+    })();
 
     // Try to pre-load the library to reduce delay when user clicks download
     loadHtml2Pdf(function(err){ if(err) setStatus('PDF library not available (will use print).'); else setStatus('PDF library ready — click Download PDF.'); });
