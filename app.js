@@ -1100,7 +1100,7 @@
       // Expose a simple global setter so you can change major/minor/patch from the console or other scripts
       try{ window.setAppVersion = setAppVersion; }catch(e){}
       // Initialize version (patch-level increments should update the third number)
-      try{ setAppVersion('1.0.1'); }catch(e){}
+  try{ setAppVersion('1.2.1'); }catch(e){}
       if('serviceWorker' in navigator){
         // Register on load to avoid blocking initial parsing
         window.addEventListener('load', function(){

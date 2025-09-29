@@ -1,0 +1,18 @@
+2025-09-29
+Version: 1.2.1
+
+Changes in 1.2.1 (2025-09-29):
+- Improved PDF/print formatting for generated reports:
+  - Added print-safe CSS rules to avoid splitting tables/rows and to repeat table headers on page breaks.
+  - Introduced .section-block and .section-inner wrappers so section headings stay with their content when possible.
+  - Tuned @page margins and reduced body padding for printed output to minimize large gaps.
+  - Added .meta keep-together rule to keep inspection date and policy on the same page as the title.
+  - Added dynamic .page-break-before-if-needed class and a JS heuristic (markOrphanSectionsIfNeeded) that marks only sections that would be orphaned to force page breaks before them.
+  - Heuristic refined to never force a page break before the first section to avoid leaving the first page nearly empty.
+- Mobile/UI tweaks:
+  - Appended mobile-specific CSS (under @media max-width:420px) to improve spacing, touch targets, and popover z-index on small devices (Galaxy S23+ improvements).
+- Miscellaneous:
+  - Updated application version to 1.2.1
+
+Notes:
+- The PDF/layout heuristics are client-side and may vary slightly between browser print and html2pdf rendering. If further adjustments are required (e.g., always forcing a specific section onto a new page or using server-side PDF rendering), follow-up changes can be made.
