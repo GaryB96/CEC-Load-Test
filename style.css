@@ -734,3 +734,22 @@ select option:checked {
   font-weight: 600;
   pointer-events: none;
 }
+
+/* Compact widths for the inline watts calculator controls */
+#calcValue {
+  max-width: 120px;
+  min-width: 80px;
+  flex: 0 0 auto;
+  padding: 0.45rem 0.6rem;
+}
+
+#calcVoltage {
+  max-width: 110px;
+  min-width: 70px;
+  flex: 0 0 auto;
+  padding: 0.45rem 0.6rem;
+}
+
+@media (max-width: 640px) {
+  #calcValue, #calcVoltage { flex: 1 1 100%; max-width: none; min-width: 0; }
+}
