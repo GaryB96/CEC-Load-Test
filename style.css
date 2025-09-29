@@ -391,6 +391,14 @@ select option:checked {
   color: var(--text);
 }
 
+/* Compact cooking inputs: make Qty and Watts smaller */
+#rangeCount, #rangeWatts {
+  flex: 0 0 90px;
+  max-width: 110px;
+  min-width: 60px;
+  padding: 0.65rem 0.6rem; /* restore vertical padding to match other inputs (height preserved) */
+}
+
 #spaceHeatVoltage,
 #airCondVoltage { max-width: 200px; }
 
@@ -840,4 +848,25 @@ select option:checked {
   margin-top: 0;          /* avoid extra vertical gap */
   max-width: 240px;       /* cap so it isn't full-width */
   width: auto;
+}
+
+/* Swap the visual order of dropdown and watt input in space-conditioning rows
+   without editing the markup. Give the value input a lower order number
+   so it appears before the dropdown. Voltage input should follow the value. */
+#section-space #spaceHeatValue { order: 1; }
+#section-space #spaceHeatVoltage { order: 2; }
+#section-space #spaceHeatType { order: 3; }
+
+#section-space #airCondValue { order: 1; }
+#section-space #airCondVoltage { order: 2; }
+#section-space #airCondType { order: 3; }
+
+@media (max-width: 640px) {
+  /* keep default flow on small screens to avoid layout surprises */
+  #section-space #spaceHeatValue,
+  #section-space #spaceHeatVoltage,
+  #section-space #spaceHeatType,
+  #section-space #airCondValue,
+  #section-space #airCondVoltage,
+  #section-space #airCondType { order: 0; }
 }

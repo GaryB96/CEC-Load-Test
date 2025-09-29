@@ -537,10 +537,30 @@
         updateSpaceHeatInputMode();
         updateAirCondInputMode();
         renderAllLists();
+        try{ setupSpaceTabOrder(); }catch(e){}
         // Initialize the sticky Watts calculator
         try{ setupWattsCalc(); }catch(e){ /* ignore if elements missing */ }
         calculate();
       }
+
+    // Ensure keyboard tab order inside Space Conditioning follows: Name -> Value -> Voltage -> Type
+    function setupSpaceTabOrder(){
+      try{
+        var mapping = [
+          ['spaceHeatName','spaceHeatValue','spaceHeatVoltage','spaceHeatType'],
+          ['airCondName','airCondValue','airCondVoltage','airCondType']
+        ];
+        var base = 10; // start tab index at 10 to avoid interfering with other controls that may be implicitly ordered
+        mapping.forEach(function(ids){
+          ids.forEach(function(id, idx){
+            var el = document.getElementById(id);
+            if(!el) return;
+            el.tabIndex = base + idx; // name=10, value=11, voltage=12, type=13
+          });
+          base += 10; // next group starts further to keep groups separated
+        });
+      }catch(e){ /* no-op if DOM not ready */ }
+    }
       if(document.readyState === 'loading'){
         document.addEventListener('DOMContentLoaded', doInit);
       } else {
