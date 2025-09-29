@@ -407,6 +407,21 @@ select option:checked {
   padding: 0.65rem 0.6rem; /* preserve vertical padding so height matches other controls */
 }
 
+/* Compact EV charging inputs and EVEMS dropdown */
+#evseCount, #evseWatts {
+  flex: 0 0 90px;
+  max-width: 110px;
+  min-width: 60px;
+  padding: 0.65rem 0.6rem; /* preserve vertical padding */
+}
+
+/* EVEMS dropdown doesn't need full width; show 'yes'/'no' clearly */
+#evems {
+  flex: 0 0 120px;
+  max-width: 270px;
+  padding: 0.65rem 0.6rem;
+}
+
 #spaceHeatVoltage,
 #airCondVoltage { max-width: 200px; }
 
