@@ -825,4 +825,18 @@ select option:checked {
 #section-space .split .row {
   gap: 0.6rem; /* slightly tighter than global .row gap (0.85rem) */
   align-items: flex-end;
+  /* force the input row to occupy the full line so the button wraps to the next line */
+  flex: 1 1 100%;
+}
+
+/* Place the Add button on its own line under the .row without moving inputs
+   Use flex-basis so the button breaks to a new line but inputs keep their layout. */
+#section-space .split > .btn {
+  /* let the button size to its content but keep it on the next line
+     (the .row is full-width, so the button naturally wraps to a new line) */
+  flex: 0 0 auto;
+  align-self: flex-end;    /* keep it right-aligned */
+  margin-top: 0;          /* avoid extra vertical gap */
+  max-width: 240px;       /* cap so it isn't full-width */
+  width: auto;
 }
