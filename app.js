@@ -58,7 +58,7 @@
 
     function addAirCond(){ var n=$('airCondName'), t=$('airCondType'), v=$('airCondValue'), u=$('airCondVoltage'); if(!t||!v) return; var label = n? n.value.trim() : ''; var type = t.value; var value = parseFloat(v.value); if(isNaN(value)||value<=0) return; var watts=0, amps=null, voltage=null; if(type==='amps'){ var raw = u?parseFloat(u.value):NaN; if(isNaN(raw)||raw<=0) return; amps = value; voltage = raw; watts = amps*voltage; } else watts = value; state.airCond.push({ label: label || (type==='amps'?'Cooling load (A)':'Cooling load (W)'), type: type, watts: Math.round(watts), amps: type==='amps'?amps:null, voltage: type==='amps'?voltage:null }); if(n) n.value=''; v.value=''; renderAllLists(); calculate(); }
 
-    function addRange(){ var n=$('rangeName'), c=$('rangeCount'), w=$('rangeWatts'); if(!c||!w) return; var label = n? n.value.trim() : ''; var count = parseInt(c.value||'0',10); var watts = parseFloat(w.value); if(isNaN(count)||count<=0) return; if(isNaN(watts)||watts<=0) return; state.ranges.push({ label: label||'Range', count: count, watts: Math.round(watts) }); if(n) n.value=''; if(c) c.value = c.defaultValue || '1'; if(w) w.value = w.defaultValue || ''; renderAllLists(); calculate(); }
+  function addRange(){ var n=$('rangeName'), w=$('rangeWatts'); if(!w) return; var label = n? n.value.trim() : ''; var count = 1; var watts = parseFloat(w.value); if(isNaN(watts)||watts<=0) return; state.ranges.push({ label: label||'Range', count: count, watts: Math.round(watts) }); if(n) n.value=''; if(w) w.value = w.defaultValue || ''; renderAllLists(); calculate(); }
 
     function addSpecialWater(){ var n=$('specialWaterName'), w=$('specialWaterWatts'); if(!w) return; var label = n? n.value.trim() : ''; var watts = parseFloat(w.value); if(isNaN(watts)||watts<=0) return; state.specialWater.push({ name: label||'Dedicated heater', watts: Math.round(watts) }); if(n) n.value=''; w.value=''; renderAllLists(); calculate(); }
 
@@ -336,10 +336,35 @@
     @media print {
       /* Hide the toolbar when printing */
       #report-toolbar { display: none !important; }
-    }
-    @media print {
+      /* Ensure consistent page padding for printed output */
+      /* Give pages a little extra top margin so headings aren't flush to the edge */
+  /* Slightly larger top margin to avoid headings sitting flush at page top */
+  @page { margin: 1.2in 0.75in 0.75in 0.75in; }
       body { padding: 0.75in; }
-      table { page-break-inside: avoid; }
+  /* Ensure sensible automatic page breaks and avoid splitting rows/sections when possible */
+  table { page-break-before: auto; page-break-after: auto; }
+  thead { display: table-header-group; }
+  tfoot { display: table-footer-group; }
+  /* Avoid breaking inside table rows and key sections where possible */
+  table, tbody, tr, td, th { page-break-inside: avoid; break-inside: avoid; }
+  /* Allow table headers to repeat on each printed page (thead/tfoot shown above) */
+  /* Prevent notes boxes from being split across pages; avoid splitting tables/rows.
+    Do NOT force sections to start on their own page (that made the PDF very long). */
+  .notes-box { page-break-inside: avoid; break-inside: avoid; }
+  .report-section { /* prefer not to split a section, but do not force a page break */ page-break-inside: avoid; break-inside: avoid; }
+  /* Avoid leaving a section heading alone at the bottom of a page */
+  .section-title { page-break-after: avoid; break-after: avoid; }
+  .section-title { orphans: 2; widows: 2; padding-bottom: 0.15rem; display: block; break-before: avoid; }
+  /* Keep a section heading and its immediate content together when possible */
+  .section-inner { page-break-inside: avoid; break-inside: avoid; padding-top: 0.6rem; }
+  /* Wrap heading + content so they move as a single unit when printing */
+  .section-block {
+    display: table; width: 100%; margin-top: 0.25rem;
+    -webkit-column-break-inside: avoid; -webkit-region-break-inside: avoid;
+    page-break-inside: avoid; break-inside: avoid; break-after: avoid; page-break-after: avoid;
+  }
+      /* Small tolerance for very long tables: prefer not to orphan a single row - keep at least 2 rows together */
+      tr { orphans: 2; widows: 2; }
     }
   </style>
 </head>
@@ -351,70 +376,96 @@
   </div>
 
   <section class="report-section">
-    <div class="section-title">Area Summary</div>
-    <table>
+    <div class="section-block">
+      <div class="section-title">Area Summary</div>
+      <div class="section-inner">
+      <table class="report-table">
       <thead><tr><th scope="col">Item</th><th scope="col">Value</th></tr></thead>
       <tbody>
         ${areaRows.join('\n        ')}
       </tbody>
-    </table>
+      </table>
+      </div>
+    </div>
   </section>
 
   <section class="report-section">
-    <div class="section-title">Space Heating Loads</div>
-    <table>
+    <div class="section-block">
+      <div class="section-title">Space Heating Loads</div>
+      <div class="section-inner">
+      <table class="report-table">
       <thead><tr><th scope="col">Entry</th><th scope="col">Details</th></tr></thead>
       <tbody>
         ${spaceHeatRows}
       </tbody>
-    </table>
+      </table>
+      </div>
+    </div>
   </section>
 
   <section class="report-section">
-    <div class="section-title">Air Conditioning Loads</div>
-    <table>
+    <div class="section-block">
+      <div class="section-title">Air Conditioning Loads</div>
+      <div class="section-inner">
+      <table class="report-table">
       <thead><tr><th scope="col">Entry</th><th scope="col">Details</th></tr></thead>
       <tbody>
         ${airRows}
       </tbody>
-    </table>
+      </table>
+      </div>
+    </div>
   </section>
 
   <section class="report-section">
-    <div class="section-title">Cooking Ranges</div>
-    <table>
+    <div class="section-block">
+      <div class="section-title">Cooking Ranges</div>
+      <div class="section-inner">
+      <table class="report-table">
       <thead><tr><th scope="col">Entry</th><th scope="col">Details</th></tr></thead>
       <tbody>
         ${rangeRows}
       </tbody>
-    </table>
+      </table>
+      </div>
+    </div>
   </section>
 
   <section class="report-section">
-    <div class="section-title">Water Heating</div>
-    <table>
+    <div class="section-block">
+      <div class="section-title">Water Heating</div>
+      <div class="section-inner">
+      <table class="report-table">
       <thead><tr><th scope="col">Item</th><th scope="col">Details</th></tr></thead>
       <tbody>
         ${tanklessRow || ''}
         ${storageRow || ''}
         ${specialWaterRows}
       </tbody>
-    </table>
+      </table>
+      </div>
+    </div>
   </section>
 
   <section class="report-section">
-    <div class="section-title">Other Fixed Appliances ≥ 1500 W</div>
-    <table>
+    <div class="section-block">
+      <div class="section-title">Other Fixed Appliances ≥ 1500 W</div>
+      <div class="section-inner">
+      <table class="report-table">
       <thead><tr><th scope="col">Entry</th><th scope="col">Nameplate</th></tr></thead>
       <tbody>
         ${appliancesRows}
       </tbody>
-    </table>
+      </table>
+      </div>
+    </div>
   </section>
 
   <section class="report-section">
-    <div class="section-title">Electric Vehicle Charging</div>
-    <table>
+    <div class="section-block">
+      <div class="section-title">Electric Vehicle Charging</div>
+      <div class="section-inner">
+      <table class="report-table">
       <thead><tr><th scope="col">Detail</th><th scope="col">Value</th></tr></thead>
       <tbody>
         <tr><td>Chargers installed</td><td>${snapshot.loads.evseCount}</td></tr>
@@ -422,12 +473,16 @@
         <tr><td>Energy management (EVEMS)</td><td>${evemsLabel}</td></tr>
         <tr><td>Demand included</td><td>${fmtW(snapshot.loads.evseDemandW)} W</td></tr>
       </tbody>
-    </table>
+      </table>
+      </div>
+    </div>
   </section>
 
   <section class="report-section">
-    <div class="section-title">Demand Summary</div>
-    <table class="totals-table">
+    <div class="section-block">
+      <div class="section-title">Demand Summary</div>
+      <div class="section-inner">
+      <table class="totals-table report-table">
       <thead><tr><th scope="col">Component</th><th scope="col">Demand (W)</th></tr></thead>
       <tbody>
         <tr><td>Basic load from area</td><td>${fmtW(snapshot.loads.basic)}</td></tr>
@@ -444,7 +499,9 @@
         <tr><td>Calculated load (greater of Path A or B)</td><td class="totals-highlight">${fmtW(snapshot.results.calcLoad)}</td></tr>
         <tr><td>Minimum service / feeder current</td><td class="totals-highlight">${fmtA(snapshot.results.amps)} A @ ${snapshot.results.voltage} V</td></tr>
       </tbody>
-    </table>
+      </table>
+      </div>
+    </div>
   </section>
 
   <div class="notes">
@@ -496,7 +553,7 @@
       loadHtml2Pdf(function(err){
         if(err){ console.warn('html2pdf load failed', err); if(toolbar) toolbar.style.display = prevDisplay || ''; setStatus('Could not load PDF library; opening print dialog.'); window.print(); return; }
         try{
-          html2pdf().set({ filename: filename, pagebreak: { mode: 'css' } }).from(document.body).save().then(function(){
+          html2pdf().set({ filename: filename, pagebreak: { mode: 'css', avoid: ['.report-table', '.notes-box', 'tr', '.section-block'] } }).from(document.body).save().then(function(){
             setStatus('Download started');
             if(toolbar) toolbar.style.display = prevDisplay || '';
           }).catch(function(err){
@@ -634,8 +691,8 @@
       calcForm.addEventListener('input', function(e){
         // mark dirty only for trusted user input events
         try{ if(e && e.isTrusted) isDirty = true; }catch(err){}
-        var id = e && e.target && e.target.id;
-        var instant = [ 'groundUpperArea','basementArea','spaceHeatName','spaceHeatType','spaceHeatValue','spaceHeatVoltage','airCondName','airCondType','airCondValue','airCondVoltage','rangeName','rangeCount','rangeWatts','interlock','tanklessWatts','storageWHWatts','evseCount','evseWatts','evems','applianceWatts','applianceName' ].indexOf(id) !== -1;
+  var id = e && e.target && e.target.id;
+  var instant = [ 'groundUpperArea','basementArea','spaceHeatName','spaceHeatType','spaceHeatValue','spaceHeatVoltage','airCondName','airCondType','airCondValue','airCondVoltage','rangeName','rangeWatts','interlock','tanklessWatts','storageWHWatts','evseCount','evseWatts','evems','applianceWatts','applianceName' ].indexOf(id) !== -1;
         if(instant) calculate();
         if(id === 'spaceHeatType') updateSpaceHeatInputMode();
         if(id === 'airCondType') updateAirCondInputMode();

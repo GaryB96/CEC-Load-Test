@@ -205,6 +205,18 @@ select:focus {
 
 .list .kill:hover { background: rgba(255,115,135,0.32); color: #ffe2e8; }
 
+.list .edit {
+  border: 0;
+  border-radius: 9px;
+  padding: 0.38rem 0.7rem;
+  background: rgba(120, 220, 140, 0.12);
+  color: #d8f6d9;
+  cursor: pointer;
+  transition: background 140ms ease, color 140ms ease;
+}
+
+.list .edit:hover { background: rgba(100,200,120,0.20); color: #f0fff0; }
+
 .result,
 .warn {
   border-radius: var(--radius);
@@ -377,7 +389,6 @@ select option:checked {
 #airCondValue,
 #airCondVoltage,
 #rangeName,
-#rangeCount,
 #rangeWatts,
 #applianceName,
 #applianceWatts {
@@ -391,11 +402,11 @@ select option:checked {
   color: var(--text);
 }
 
-/* Compact cooking inputs: make Qty and Watts smaller */
-#rangeCount, #rangeWatts {
-  flex: 0 0 90px;
-  max-width: 110px;
-  min-width: 60px;
+/* Compact cooking inputs: make Watts input slightly smaller */
+#rangeWatts {
+  flex: 0 0 110px;
+  max-width: 140px;
+  min-width: 80px;
   padding: 0.65rem 0.6rem; /* restore vertical padding to match other inputs (height preserved) */
 }
 
