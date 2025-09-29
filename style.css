@@ -205,18 +205,6 @@ select:focus {
 
 .list .kill:hover { background: rgba(255,115,135,0.32); color: #ffe2e8; }
 
-.list .edit {
-  border: 0;
-  border-radius: 9px;
-  padding: 0.38rem 0.7rem;
-  background: rgba(120, 220, 140, 0.12);
-  color: #d8f6d9;
-  cursor: pointer;
-  transition: background 140ms ease, color 140ms ease;
-}
-
-.list .edit:hover { background: rgba(100,200,120,0.20); color: #f0fff0; }
-
 .result,
 .warn {
   border-radius: var(--radius);
@@ -312,6 +300,34 @@ select option:checked {
   color: #ffffff;
 }
 
+/* Mobile (small phones) specific improvements */
+@media (max-width: 420px) {
+  .wrap { padding: 0.8rem; }
+  body { font-size: 15px; }
+  .card { padding: 0.85rem; border-radius: 10px; }
+  input[type="number"], input[type="text"], input[type="date"], select, #systemNotes, textarea {
+    font-size: 1rem;
+    padding: 0.85rem 0.9rem;
+    border-radius: 12px;
+  }
+  .btn { padding: 0.9rem 1rem; font-size: 1rem; }
+  .calc-sticky-wrapper, .inline-watts { position: relative; z-index: 60; }
+  /* If any popover or floating calc UI is used, ensure it overlays above input fields */
+  .calc-popover, .calc-popup, .inline-calc-popup { position: absolute; z-index: 9999; left: 0; right: 0; }
+  /* make rows always stack cleanly on mobile */
+  .row { align-items: stretch; }
+  .row > input, .row > select { min-width: 0; }
+  /* slightly increased spacing under section titles to avoid visual crowding */
+  .section-title { margin-bottom: 0.6rem; }
+  /* make list items taller so content doesn't wrap under controls */
+  .list .item { padding: 0.9rem; grid-template-columns: 1fr auto; }
+  /* ensure the small computed-area and helper text don't overlap */
+  .dim-footer { display:flex; gap:0.5rem; align-items:center; }
+  .dim-area, .dim-symbol { font-size: 0.95rem; }
+  /* give section inner a bit more breathing room on mobile */
+  .section-inner { padding-top: 0.5rem; }
+}
+
 #systemNotes {
   width: 100%;
   padding: 0.65rem 0.85rem;
@@ -380,6 +396,32 @@ select option:checked {
 @media (max-width: 640px) {
   .row > input,
   .row > select { flex: 1 1 100%; max-width: none; }
+}
+
+/* Mobile (small phones) specific improvements */
+@media (max-width: 420px) {
+  .wrap { padding: 0.8rem; }
+  body { font-size: 15px; }
+  .card { padding: 0.85rem; border-radius: 10px; }
+  input[type="number"], input[type="text"], input[type="date"], select, #systemNotes, textarea {
+    font-size: 1rem;
+    padding: 0.85rem 0.9rem;
+    border-radius: 12px;
+  }
+  .btn { padding: 0.9rem 1rem; font-size: 1rem; }
+  .calc-sticky-wrapper, .inline-watts { position: relative; z-index: 60; }
+  /* make rows always stack cleanly on mobile */
+  .row { align-items: stretch; }
+  .row > input, .row > select { min-width: 0; }
+  /* slightly increased spacing under section titles to avoid visual crowding */
+  .section-title { margin-bottom: 0.6rem; }
+  /* make list items taller so content doesn't wrap under controls */
+  .list .item { padding: 0.9rem; grid-template-columns: 1fr auto; }
+  /* ensure the small computed-area and helper text don't overlap */
+  .dim-footer { display:flex; gap:0.5rem; align-items:center; }
+  .dim-area, .dim-symbol { font-size: 0.95rem; }
+  /* give section inner a bit more breathing room on mobile */
+  .section-inner { padding-top: 0.5rem; }
 }
 
 #spaceHeatName,
