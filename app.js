@@ -34,7 +34,7 @@
     }
     var lastCalcSnapshot = null;
 
-    function renderList(hostId, items, formatItem){ var host=$(hostId); if(!host) return; host.innerHTML=''; items.forEach(function(it, idx){ var row=document.createElement('div'); row.className='item'; var name=document.createElement('div'); name.textContent = formatItem.title(it); var val=document.createElement('div'); val.className='mono'; val.textContent = formatItem.value(it); var kill=document.createElement('button'); kill.className='kill'; kill.textContent='Remove'; kill.addEventListener('click', function(){ formatItem.remove(idx); renderAllLists(); calculate(); }); row.appendChild(name); row.appendChild(val); row.appendChild(kill); host.appendChild(row); }); }
+  function renderList(hostId, items, formatItem){ var host=$(hostId); if(!host) return; host.innerHTML=''; items.forEach(function(it, idx){ var row=document.createElement('div'); row.className='item'; var name=document.createElement('div'); name.textContent = formatItem.title(it); var val=document.createElement('div'); val.className='mono'; val.textContent = formatItem.value(it); var kill=document.createElement('button'); kill.type = 'button'; kill.className='kill'; kill.textContent='Remove'; kill.addEventListener('click', function(){ formatItem.remove(idx); renderAllLists(); calculate(); }); row.appendChild(name); row.appendChild(val); row.appendChild(kill); host.appendChild(row); }); }
 
     function renderAllLists(){ renderList('spaceHeatList', state.spaceHeat, { title: function(i){ return i.label; }, value: function(i){ return i.type==='amps'? (fmtA(i.amps)+' A @ '+fmtA(i.voltage)+' V ('+fmtW(i.watts)+' W)') : (fmtW(i.watts)+' W'); }, remove: function(idx){ state.spaceHeat.splice(idx,1); } }); renderList('airCondList', state.airCond, { title: function(i){ return i.label; }, value: function(i){ return i.type==='amps'? (fmtA(i.amps)+' A @ '+fmtA(i.voltage)+' V ('+fmtW(i.watts)+' W)') : (fmtW(i.watts)+' W'); }, remove: function(idx){ state.airCond.splice(idx,1); } }); renderList('rangeList', state.ranges, { title: function(i){ return i.label; }, value: function(i){ return i.count + ' x ' + fmtW(i.watts) + ' W'; }, remove: function(idx){ state.ranges.splice(idx,1); } }); renderList('specialWaterList', state.specialWater, { title: function(i){ return i.name; }, value: function(i){ return fmtW(i.watts) + ' W'; }, remove: function(idx){ state.specialWater.splice(idx,1); } }); renderList('applianceList', state.appliances, { title: function(i){ return i.name; }, value: function(i){ return fmtW(i.watts) + ' W'; }, remove: function(idx){ state.appliances.splice(idx,1); } }); }
 
@@ -537,7 +537,8 @@
         updateSpaceHeatInputMode();
         updateAirCondInputMode();
         renderAllLists();
-        try{ setupSpaceTabOrder(); }catch(e){}
+  try{ setupSpaceTabOrder(); }catch(e){}
+  try{ setupEnterToAdd(); }catch(e){}
         // Initialize the sticky Watts calculator
         try{ setupWattsCalc(); }catch(e){ /* ignore if elements missing */ }
         calculate();
@@ -560,6 +561,36 @@
           base += 10; // next group starts further to keep groups separated
         });
       }catch(e){ /* no-op if DOM not ready */ }
+    }
+
+    // Allow pressing Enter in a watts/value input to act like clicking the corresponding Add button.
+    function setupEnterToAdd(){
+      try{
+        var mapping = [
+          { id: 'spaceHeatValue', fn: addSpaceHeat, focusId: 'spaceHeatName' },
+          { id: 'airCondValue', fn: addAirCond, focusId: 'airCondName' },
+          { id: 'rangeWatts', fn: addRange, focusId: 'rangeName' },
+          { id: 'specialWaterWatts', fn: addSpecialWater, focusId: 'specialWaterName' },
+          { id: 'applianceWatts', fn: addAppliance, focusId: 'applianceName' }
+        ];
+        mapping.forEach(function(m){
+          var el = document.getElementById(m.id);
+          if(!el) return;
+          el.addEventListener('keydown', function(e){
+            if(!e) return;
+            if(e.key === 'Enter' || e.keyCode === 13){
+              e.preventDefault();
+              try{ m.fn(); }catch(err){ console.warn('Enter-to-add failed for', m.id, err); }
+              try{
+                if(m.focusId){
+                  var tgt = document.getElementById(m.focusId);
+                  if(tgt && typeof tgt.focus === 'function') tgt.focus();
+                }
+              }catch(_){ /* ignore focus errors */ }
+            }
+          });
+        });
+      }catch(e){ /* ignore setup errors */ }
     }
       if(document.readyState === 'loading'){
         document.addEventListener('DOMContentLoaded', doInit);
