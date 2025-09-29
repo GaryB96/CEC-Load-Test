@@ -598,10 +598,11 @@ select option:checked {
 
 /* Compact main area inputs */
 #groundUpperArea, #basementArea {
-  max-width: 140px;
-  min-width: 100px;
-  flex: 0 0 auto;
-  padding: 0.5rem 0.65rem;
+  /* match the dim helper fixed-ish width so main inputs line up */
+  flex: 0 0 110px;
+  max-width: 110px;
+  min-width: 70px;
+  padding: 0.45rem 0.6rem;
 }
 
 .dim-footer {
