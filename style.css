@@ -588,10 +588,20 @@ select option:checked {
 }
 
 .dim-row .dim-length,
+.dim-row .dim-length,
 .dim-row .dim-width {
-  flex: 1 1 120px;
+  flex: 0 0 110px; /* fixed-ish narrow helper fields */
+  max-width: 110px;
+  min-width: 70px;
+  padding: 0.45rem 0.6rem;
+}
+
+/* Compact main area inputs */
+#groundUpperArea, #basementArea {
   max-width: 140px;
-  min-width: 90px;
+  min-width: 100px;
+  flex: 0 0 auto;
+  padding: 0.5rem 0.65rem;
 }
 
 .dim-footer {
