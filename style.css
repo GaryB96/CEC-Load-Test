@@ -763,3 +763,66 @@ select option:checked {
 @media (max-width: 640px) {
   #calcValue, #calcVoltage { flex: 1 1 100%; max-width: none; min-width: 0; }
 }
+
+/* Space Conditioning specific compact controls (narrow dropdowns & watt inputs)
+   Scoped to #section-space so appliance name inputs remain untouched. */
+#section-space #spaceHeatType,
+#section-space #airCondType {
+  max-width: 100px;
+  min-width: 70px;
+  flex: 0 0 auto;
+  /* keep the same vertical padding as main inputs so height doesn't change */
+  padding: 0.65rem 0.6rem;
+  line-height: 1.1; /* ensure text vertical rhythm matches other controls */
+}
+
+#section-space #spaceHeatValue,
+#section-space #airCondValue {
+  max-width: 110px;
+  min-width: 80px;
+  flex: 0 0 auto;
+  /* maintain vertical padding so control height stays consistent */
+  padding: 0.65rem 0.6rem;
+  line-height: 1.1;
+}
+
+@media (max-width: 640px) {
+  #section-space #spaceHeatType,
+  #section-space #airCondType,
+  #section-space #spaceHeatValue,
+  #section-space #airCondValue {
+    flex: 1 1 100%;
+    max-width: none;
+    min-width: 0;
+  }
+}
+
+/* Narrow the interlock dropdown to only the width needed for the 'yes' option
+   Keep vertical padding equal to other inputs so height is unchanged. */
+#interlock {
+  max-width: 250px; /* conservative width to show 'yes' comfortably */
+  flex: 0 0 auto;
+  padding: 0.65rem 0.6rem; /* keep vertical padding same as other inputs */
+  box-sizing: border-box;
+}
+
+@media (max-width: 640px) {
+  #interlock { flex: 1 1 100%; max-width: none; min-width: 0; }
+}
+
+/* Reduce vertical spacing between the appliance-name input row and the watt inputs/list below
+   only inside the Space Conditioning section so other sections are unaffected. */
+#section-space .col-12 > .list {
+  /* tighten vertical spacing for list items */
+  gap: 0.35rem; /* was 0.55rem globally */
+  margin-bottom: 0.25rem; /* bring the following controls closer */
+}
+
+#section-space .col-12 > .split {
+  gap: 0.5rem; /* was 1rem globally for .split */
+}
+
+#section-space .split .row {
+  gap: 0.6rem; /* slightly tighter than global .row gap (0.85rem) */
+  align-items: flex-end;
+}
