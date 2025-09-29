@@ -399,6 +399,14 @@ select option:checked {
   padding: 0.65rem 0.6rem; /* restore vertical padding to match other inputs (height preserved) */
 }
 
+/* Compact water heating inputs: tankless and storage (first two watt inputs) */
+#tanklessWatts, #storageWHWatts {
+  flex: 0 0 110px;
+  max-width: 130px;
+  min-width: 60px;
+  padding: 0.65rem 0.6rem; /* preserve vertical padding so height matches other controls */
+}
+
 #spaceHeatVoltage,
 #airCondVoltage { max-width: 200px; }
 
