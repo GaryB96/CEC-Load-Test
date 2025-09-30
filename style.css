@@ -431,7 +431,7 @@ select option:checked {
 #airCondValue,
 #airCondVoltage,
 #rangeName,
-#rangeWatts,
+#rangeValue,
 #applianceName,
 #applianceWatts {
   flex: 1 1 220px;
@@ -445,12 +445,16 @@ select option:checked {
 }
 
 /* Compact cooking inputs: make Watts input slightly smaller */
-#rangeWatts {
+/* Compact cooking inputs: value and selection */
+#rangeValue {
   flex: 0 0 110px;
   max-width: 140px;
   min-width: 80px;
   padding: 0.65rem 0.6rem; /* restore vertical padding to match other inputs (height preserved) */
 }
+
+#rangeType { flex: 0 0 110px; max-width:120px; min-width:80px; padding: 0.65rem 0.6rem; }
+#rangeVoltage { flex: 0 0 110px; max-width:120px; min-width:80px; padding: 0.65rem 0.6rem; }
 
 /* Compact water heating inputs: tankless and storage (first two watt inputs) */
 #tanklessWatts, #storageWHWatts {
@@ -476,7 +480,7 @@ select option:checked {
 }
 
 #spaceHeatVoltage,
-#airCondVoltage { max-width: 200px; }
+#airCondVoltage { flex: 0 0 80px; max-width: 100px; min-width: 60px; padding: 0.55rem 0.6rem; }
 
 /* Small gap between add controls and the list when the list follows the input controls
    (applies across all collapsible sections where .split is used) */

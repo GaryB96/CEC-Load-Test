@@ -135,7 +135,10 @@
                             <option value="amps">Amps</option>
                           </select>
                           <input id="spaceHeatValue" type="number" inputmode="decimal" min="0" step="1" placeholder="Watts" />
-                          <input id="spaceHeatVoltage" type="number" inputmode="decimal" min="0" step="1" value="240" placeholder="Voltage (V)" style="display:none;" />
+                          <select id="spaceHeatVoltage" style="display:none;">
+                            <option value="120">120 V</option>
+                            <option value="240" selected>240 V</option>
+                          </select>
                         </div>
                         <button class="btn" id="addSpaceHeat" type="button">Add</button>
                       </div>
@@ -152,7 +155,10 @@
                             <option value="amps">Amps</option>
                           </select>
                           <input id="airCondValue" type="number" inputmode="decimal" min="0" step="1" placeholder="Watts" />
-                          <input id="airCondVoltage" type="number" inputmode="decimal" min="0" step="1" value="240" placeholder="Voltage (V)" style="display:none;" />
+                          <select id="airCondVoltage" style="display:none;">
+                            <option value="120">120 V</option>
+                            <option value="240" selected>240 V</option>
+                          </select>
                         </div>
                         <button class="btn" id="addAirCond" type="button">Add</button>
                       </div>
@@ -184,9 +190,19 @@
                       <div class="split">
                         <div class="row">
                           <input id="rangeName" type="text" placeholder="e.g., Kitchen range" />
-                          <input id="rangeWatts" type="number" min="0" step="1" placeholder="Watts" />
+                          <input id="rangeValue" type="number" min="0" step="1" placeholder="Watts" />
+                          <select id="rangeType">
+                            <option value="watts" selected>Watts</option>
+                            <option value="amps">Amps</option>
+                          </select>
+                          <select id="rangeVoltage" style="display:none;">
+                            <option value="120">120 V</option>
+                            <option value="240" selected>240 V</option>
+                          </select>
                         </div>
-                        <button class="btn" id="addRange" type="button">Add</button>
+                        <div style="margin-top:0.5rem;">
+                          <button class="btn" id="addRange" type="button">Add</button>
+                        </div>
                       </div>
                       <div id="rangeList" class="list"></div>
                       <p class="help">Demand per 8-200(1)(a)(iv): 6000 W for each range + 40% of any nameplate over 12 000 W.</p>

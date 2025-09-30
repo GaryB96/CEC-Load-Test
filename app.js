@@ -36,7 +36,7 @@
 
   function renderList(hostId, items, formatItem){ var host=$(hostId); if(!host) return; host.innerHTML=''; items.forEach(function(it, idx){ var row=document.createElement('div'); row.className='item'; var name=document.createElement('div'); name.textContent = formatItem.title(it); var val=document.createElement('div'); val.className='mono'; val.textContent = formatItem.value(it); var kill=document.createElement('button'); kill.type = 'button'; kill.className='kill'; kill.textContent='Remove'; kill.addEventListener('click', function(){ formatItem.remove(idx); renderAllLists(); calculate(); }); row.appendChild(name); row.appendChild(val); row.appendChild(kill); host.appendChild(row); }); }
 
-    function renderAllLists(){ renderList('spaceHeatList', state.spaceHeat, { title: function(i){ return i.label; }, value: function(i){ return i.type==='amps'? (fmtA(i.amps)+' A @ '+fmtA(i.voltage)+' V ('+fmtW(i.watts)+' W)') : (fmtW(i.watts)+' W'); }, remove: function(idx){ state.spaceHeat.splice(idx,1); } }); renderList('airCondList', state.airCond, { title: function(i){ return i.label; }, value: function(i){ return i.type==='amps'? (fmtA(i.amps)+' A @ '+fmtA(i.voltage)+' V ('+fmtW(i.watts)+' W)') : (fmtW(i.watts)+' W'); }, remove: function(idx){ state.airCond.splice(idx,1); } }); renderList('rangeList', state.ranges, { title: function(i){ return i.label; }, value: function(i){ return i.count + ' x ' + fmtW(i.watts) + ' W'; }, remove: function(idx){ state.ranges.splice(idx,1); } }); renderList('specialWaterList', state.specialWater, { title: function(i){ return i.name; }, value: function(i){ return fmtW(i.watts) + ' W'; }, remove: function(idx){ state.specialWater.splice(idx,1); } }); renderList('applianceList', state.appliances, { title: function(i){ return i.name; }, value: function(i){ return fmtW(i.watts) + ' W'; }, remove: function(idx){ state.appliances.splice(idx,1); } }); }
+  function renderAllLists(){ renderList('spaceHeatList', state.spaceHeat, { title: function(i){ return i.label; }, value: function(i){ return i.type==='amps'? (fmtA(i.amps)+' A @ '+fmtA(i.voltage)+' V ('+fmtW(i.watts)+' W)') : (fmtW(i.watts)+' W'); }, remove: function(idx){ state.spaceHeat.splice(idx,1); } }); renderList('airCondList', state.airCond, { title: function(i){ return i.label; }, value: function(i){ return i.type==='amps'? (fmtA(i.amps)+' A @ '+fmtA(i.voltage)+' V ('+fmtW(i.watts)+' W)') : (fmtW(i.watts)+' W'); }, remove: function(idx){ state.airCond.splice(idx,1); } }); renderList('rangeList', state.ranges, { title: function(i){ return i.label; }, value: function(i){ if(i.type==='amps'){ return i.count + ' x ' + fmtA(i.amps) + ' A @ ' + fmtA(i.voltage) + ' V ('+fmtW(i.watts)+' W)'; } return i.count + ' x ' + fmtW(i.watts) + ' W'; }, remove: function(idx){ state.ranges.splice(idx,1); } }); renderList('specialWaterList', state.specialWater, { title: function(i){ return i.name; }, value: function(i){ return fmtW(i.watts) + ' W'; }, remove: function(idx){ state.specialWater.splice(idx,1); } }); renderList('applianceList', state.appliances, { title: function(i){ return i.name; }, value: function(i){ return fmtW(i.watts) + ' W'; }, remove: function(idx){ state.appliances.splice(idx,1); } }); }
 
     // Small, ephemeral toast for quick user feedback
     function showToast(msg, duration){
@@ -58,7 +58,9 @@
 
     function addAirCond(){ var n=$('airCondName'), t=$('airCondType'), v=$('airCondValue'), u=$('airCondVoltage'); if(!t||!v) return; var label = n? n.value.trim() : ''; var type = t.value; var value = parseFloat(v.value); if(isNaN(value)||value<=0) return; var watts=0, amps=null, voltage=null; if(type==='amps'){ var raw = u?parseFloat(u.value):NaN; if(isNaN(raw)||raw<=0) return; amps = value; voltage = raw; watts = amps*voltage; } else watts = value; state.airCond.push({ label: label || (type==='amps'?'Cooling load (A)':'Cooling load (W)'), type: type, watts: Math.round(watts), amps: type==='amps'?amps:null, voltage: type==='amps'?voltage:null }); if(n) n.value=''; v.value=''; renderAllLists(); calculate(); }
 
-  function addRange(){ var n=$('rangeName'), w=$('rangeWatts'); if(!w) return; var label = n? n.value.trim() : ''; var count = 1; var watts = parseFloat(w.value); if(isNaN(watts)||watts<=0) return; state.ranges.push({ label: label||'Range', count: count, watts: Math.round(watts) }); if(n) n.value=''; if(w) w.value = w.defaultValue || ''; renderAllLists(); calculate(); }
+  function updateRangeInputMode(){ var t=$('rangeType'), v=$('rangeValue'), u=$('rangeVoltage'); if(!t||!v||!u) return; if(t.value==='amps'){ u.style.display=''; u.disabled=false; v.placeholder='Amps'; } else { u.style.display='none'; u.disabled=true; v.placeholder='Watts'; } }
+
+  function addRange(){ var n=$('rangeName'), t=$('rangeType'), v=$('rangeValue'), u=$('rangeVoltage'); if(!v||!t) return; var label = n? n.value.trim() : ''; var count = 1; var type = t.value; var raw = parseFloat(v.value); if(isNaN(raw)||raw<=0) return; var watts=0, amps=null, voltage=null; if(type==='amps'){ var rawV = u?parseFloat(u.value):NaN; if(isNaN(rawV)||rawV<=0) return; amps = raw; voltage = rawV; watts = amps * voltage; } else { watts = raw; } state.ranges.push({ label: label||'Range', count: count, watts: Math.round(watts), type: type, amps: type==='amps'?amps:null, voltage: type==='amps'?voltage:null }); if(n) n.value=''; if(v) v.value = ''; if(u) u.value = '240'; renderAllLists(); calculate(); }
 
     function addSpecialWater(){ var n=$('specialWaterName'), w=$('specialWaterWatts'); if(!w) return; var label = n? n.value.trim() : ''; var watts = parseFloat(w.value); if(isNaN(watts)||watts<=0) return; state.specialWater.push({ name: label||'Dedicated heater', watts: Math.round(watts) }); if(n) n.value=''; w.value=''; renderAllLists(); calculate(); }
 
@@ -260,9 +262,9 @@
         : '<tr><td colspan="2">No air conditioning loads recorded.</td></tr>';
 
       var rangeRows = state.ranges.length
-        ? state.ranges.map(function(item, idx){ return '<tr><td>'+ (idx + 1) + '. ' + escapeHtml(item.label) + '</td><td>'+ item.count + ' x ' + fmtW(item.watts) + ' W</td></tr>'; }).join('')
+        ? state.ranges.map(function(item, idx){ var det = item.type==='amps' ? (fmtA(item.amps)+' A @ '+fmtA(item.voltage)+' V ('+fmtW(item.watts)+' W)') : (fmtW(item.watts)+' W'); return '<tr><td>'+ (idx + 1) + '. ' + escapeHtml(item.label) + '</td><td>' + escapeHtml(det) + '</td></tr>'; }).join(''
+        )
         : '<tr><td colspan="2">No cooking ranges recorded.</td></tr>';
-
       var specialWaterRows = state.specialWater.length
         ? state.specialWater.map(function(item, idx){ return '<tr><td>'+ (idx + 1) + '. ' + escapeHtml(item.name) + '</td><td>'+ fmtW(item.watts) + ' W</td></tr>'; }).join('')
         : '<tr><td colspan="2">No dedicated water heaters recorded.</td></tr>';
@@ -705,6 +707,9 @@
         setupCollapsibles();
         updateSpaceHeatInputMode();
         updateAirCondInputMode();
+  // Ensure range input mode is initialized
+  try{ if(typeof updateRangeInputMode === 'function') updateRangeInputMode(); }catch(e){}
+  var rangeTypeEl = document.getElementById('rangeType'); if(rangeTypeEl){ rangeTypeEl.addEventListener('change', updateRangeInputMode); }
         renderAllLists();
   try{ setupSpaceTabOrder(); }catch(e){}
   try{ setupEnterToAdd(); }catch(e){}
@@ -738,7 +743,7 @@
         var mapping = [
           { id: 'spaceHeatValue', fn: addSpaceHeat, focusId: 'spaceHeatName' },
           { id: 'airCondValue', fn: addAirCond, focusId: 'airCondName' },
-          { id: 'rangeWatts', fn: addRange, focusId: 'rangeName' },
+          { id: 'rangeValue', fn: addRange, focusId: 'rangeName' },
           { id: 'specialWaterWatts', fn: addSpecialWater, focusId: 'specialWaterName' },
           { id: 'applianceWatts', fn: addAppliance, focusId: 'applianceName' }
         ];
@@ -804,10 +809,11 @@
         // mark dirty only for trusted user input events
         try{ if(e && e.isTrusted) isDirty = true; }catch(err){}
   var id = e && e.target && e.target.id;
-  var instant = [ 'groundUpperArea','basementArea','spaceHeatName','spaceHeatType','spaceHeatValue','spaceHeatVoltage','airCondName','airCondType','airCondValue','airCondVoltage','rangeName','rangeWatts','interlock','tanklessWatts','storageWHWatts','evseCount','evseWatts','evems','applianceWatts','applianceName' ].indexOf(id) !== -1;
-        if(instant) calculate();
-        if(id === 'spaceHeatType') updateSpaceHeatInputMode();
-        if(id === 'airCondType') updateAirCondInputMode();
+  var instant = [ 'groundUpperArea','basementArea','spaceHeatName','spaceHeatType','spaceHeatValue','spaceHeatVoltage','airCondName','airCondType','airCondValue','airCondVoltage','rangeName','rangeValue','interlock','tanklessWatts','storageWHWatts','evseCount','evseWatts','evems','applianceWatts','applianceName' ].indexOf(id) !== -1;
+  if(instant) calculate();
+  if(id === 'spaceHeatType') updateSpaceHeatInputMode();
+  if(id === 'airCondType') updateAirCondInputMode();
+  if(id === 'rangeType') updateRangeInputMode();
       });
     }
 
