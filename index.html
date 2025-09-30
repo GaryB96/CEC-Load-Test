@@ -234,11 +234,23 @@
             <div class="col-12">
               <label>Steamers / pools / hot tubs / spas</label>
               <div class="split">
-                <div class="row">
+                <div class="col-left">
                   <input id="specialWaterName" type="text" placeholder="e.g., Spa heater" />
-                  <input id="specialWaterWatts" type="number" min="0" step="1" placeholder="Watts" />
+                  <button class="btn" id="addSpecialWater" type="button">Add</button>
                 </div>
-                <button class="btn" id="addSpecialWater" type="button">Add</button>
+                <div class="col-right">
+                  <div class="row">
+                    <input id="specialWaterValue" type="number" min="0" step="1" placeholder="Watts" />
+                    <select id="specialWaterType">
+                      <option value="watts" selected>Watts</option>
+                      <option value="amps">Amps</option>
+                    </select>
+                    <select id="specialWaterVoltage" style="display:none;">
+                      <option value="120">120 V</option>
+                      <option value="240" selected>240 V</option>
+                    </select>
+                  </div>
+                </div>
               </div>
               <div id="specialWaterList" class="list"></div>
               <p class="help">Add each dedicated heater separately so they can be tracked individually.</p>

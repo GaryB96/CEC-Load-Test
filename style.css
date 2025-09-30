@@ -158,6 +158,17 @@ select:focus {
 #section-cooking .split .col-right input,
 #section-cooking .split .col-right select { margin-top: 0; }
 
+/* Special water (steamer) - match cooking layout: name left, inputs right */
+#section-water .split { align-items: flex-start; }
+#section-water .split .col-left { flex: 0 0 260px; }
+#section-water .split .col-right .row { align-items: flex-start; }
+#section-water .split .col-right input, #section-water .split .col-right select { margin-top: 0; }
+
+/* Make the special water watts/value input and controls more compact */
+#specialWaterValue { flex: 0 0 100px; max-width: 110px; min-width: 0; width: auto; }
+#specialWaterType { flex: 0 0 90px; max-width: 86px; min-width: 0; width: auto; }
+#specialWaterVoltage { flex: 0 0 76px; max-width: 94px; min-width: 0; width: auto; }
+
 
 .btn {
   border-radius: 11px;
