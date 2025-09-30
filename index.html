@@ -188,20 +188,22 @@
                     <div class="col-12">
                       <label>Ranges</label>
                       <div class="split">
-                        <div class="row">
+                        <div class="col-left">
                           <input id="rangeName" type="text" placeholder="e.g., Kitchen range" />
-                          <input id="rangeValue" type="number" min="0" step="1" placeholder="Watts" />
-                          <select id="rangeType">
-                            <option value="watts" selected>Watts</option>
-                            <option value="amps">Amps</option>
-                          </select>
-                          <select id="rangeVoltage" style="display:none;">
-                            <option value="120">120 V</option>
-                            <option value="240" selected>240 V</option>
-                          </select>
-                        </div>
-                        <div style="margin-top:0.5rem;">
                           <button class="btn" id="addRange" type="button">Add</button>
+                        </div>
+                        <div class="col-right">
+                          <div class="row">
+                            <input id="rangeValue" type="number" min="0" step="1" placeholder="Watts" />
+                            <select id="rangeType">
+                              <option value="watts" selected>Watts</option>
+                              <option value="amps">Amps</option>
+                            </select>
+                            <select id="rangeVoltage" style="display:none;">
+                              <option value="120">120 V</option>
+                              <option value="240" selected>240 V</option>
+                            </select>
+                          </div>
                         </div>
                       </div>
                       <div id="rangeList" class="list"></div>

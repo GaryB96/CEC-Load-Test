@@ -129,6 +129,36 @@ select:focus {
 
 .split { display: flex; flex-wrap: wrap; gap: 1rem; align-items: flex-end; }
 
+/* Two-column split layout: left column stacks name + add button, right column holds inputs */
+.split .col-left { display:flex; flex-direction:column; gap:0.5rem; flex: 0 0 260px; }
+.split .col-right { flex: 1 1 auto; }
+.split .col-left input { width: 100%; }
+
+/* Make name input compact (prevent tall input) and keep Add button compact */
+.split .col-left input[type="text"] {
+  padding: 0.55rem 0.75rem;
+  max-height: 40px;
+  height: 40px;
+  line-height: 1.05;
+  font-size: 0.95rem;
+}
+.split .col-left .btn {
+  align-self: flex-start; /* keep button left-aligned under the name */
+  padding: 0.6rem 1.15rem; /* match global .btn padding */
+}
+
+/* Ensure the right-side inputs align center vertically and are compact */
+.split .col-right .row { align-items: center; }
+.split .col-right input, .split .col-right select { max-width: 160px; flex: 0 0 auto; }
+
+/* Ensure in Cooking section the left and right columns align at the top so
+  the watts/value controls sit level with the appliance name input. */
+#section-cooking .split { align-items: flex-start; }
+#section-cooking .split .col-right .row { align-items: flex-start; }
+#section-cooking .split .col-right input,
+#section-cooking .split .col-right select { margin-top: 0; }
+
+
 .btn {
   border-radius: 11px;
   border: 1px solid rgba(42,78,122,0.34);
