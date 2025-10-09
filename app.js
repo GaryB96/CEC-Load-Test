@@ -1388,6 +1388,11 @@
     
     * { box-sizing: border-box; }
     
+    html {
+      width: 100%;
+      overflow-x: hidden;
+    }
+    
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
       margin: 0;
@@ -1397,6 +1402,8 @@
       padding: 2rem;
       line-height: 1.6;
       font-size: 16px;
+      width: 100%;
+      overflow-x: hidden;
     }
     
     .breakdown-container {
@@ -1552,26 +1559,39 @@
     }
     
     @media (max-width: 768px) {
+      html {
+        width: 100vw !important;
+        max-width: 100vw !important;
+        overflow-x: hidden !important;
+      }
+      
       body { 
-        padding: 0; 
+        padding: 0 !important; 
+        margin: 0 !important;
         font-size: 14px;
-        margin: 0;
+        width: 100vw !important;
+        max-width: 100vw !important;
+        overflow-x: hidden !important;
       }
       
       .breakdown-container { 
-        padding: 1rem;
-        margin: 0;
-        border-radius: 0;
-        max-width: none;
-        width: 100vw;
-        min-height: 100vh;
-        box-sizing: border-box;
-        box-shadow: none;
+        padding: 1rem !important;
+        margin: 0 !important;
+        border-radius: 0 !important;
+        max-width: none !important;
+        width: 100vw !important;
+        min-height: 100vh !important;
+        box-sizing: border-box !important;
+        box-shadow: none !important;
+        left: 0 !important;
+        right: 0 !important;
+        position: relative !important;
       }
       
       .breakdown-header {
         padding-bottom: 1rem;
         margin-bottom: 1.5rem;
+        width: 100% !important;
       }
       
       .breakdown-header h1 { 
@@ -1589,6 +1609,7 @@
         grid-template-columns: 1fr;
         gap: 0.5rem;
         margin-top: 0.75rem;
+        width: 100% !important;
       }
       
       .breakdown-meta div {
@@ -1598,6 +1619,7 @@
       
       .breakdown-section {
         margin-bottom: 1.25rem;
+        width: 100% !important;
       }
       
       .breakdown-section h2 {
@@ -1610,6 +1632,7 @@
         padding: 0.8rem;
         margin-bottom: 0.8rem;
         border-radius: 6px;
+        width: 100% !important;
       }
       
       .breakdown-code-ref {
@@ -1637,8 +1660,10 @@
         justify-content: center;
         margin-bottom: 1rem;
         padding: 0.5rem;
-        width: 100%;
+        width: 100vw !important;
         box-sizing: border-box;
+        left: 0 !important;
+        right: 0 !important;
       }
       
       .toolbar button {
