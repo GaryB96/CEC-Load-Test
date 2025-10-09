@@ -1552,14 +1552,83 @@
     }
     
     @media (max-width: 768px) {
-      body { padding: 1rem; }
-      .breakdown-container { padding: 1.5rem; }
-      .breakdown-header h1 { font-size: 1.8rem; }
-      .breakdown-meta { grid-template-columns: 1fr; }
+      body { 
+        padding: 0.5rem; 
+        font-size: 14px;
+      }
+      
+      .breakdown-container { 
+        padding: 1rem;
+        margin: 0;
+        border-radius: 8px;
+        max-width: none;
+        width: 100%;
+        box-sizing: border-box;
+      }
+      
+      .breakdown-header h1 { 
+        font-size: 1.5rem;
+        margin-bottom: 0.5rem;
+      }
+      
+      .breakdown-header .subtitle {
+        font-size: 0.9rem;
+        margin-bottom: 0.75rem;
+      }
+      
+      .breakdown-meta { 
+        grid-template-columns: 1fr;
+        gap: 0.5rem;
+        margin-top: 0.75rem;
+      }
+      
+      .breakdown-meta div {
+        padding: 0.5rem;
+        font-size: 0.85rem;
+      }
+      
+      .breakdown-section {
+        margin-bottom: 1.5rem;
+      }
+      
+      .breakdown-section h2 {
+        font-size: 1.1rem;
+        margin-bottom: 1rem;
+      }
+      
+      .breakdown-calculation {
+        padding: 1rem;
+        margin-bottom: 1rem;
+        border-radius: 8px;
+      }
+      
+      .breakdown-code-ref {
+        font-size: 0.8rem;
+        padding: 0.4rem 0.6rem;
+        margin-bottom: 0.75rem;
+      }
+      
+      .breakdown-formula {
+        font-size: 0.85rem;
+        line-height: 1.4;
+        margin-bottom: 0.4rem;
+      }
+      
+      .breakdown-result {
+        font-size: 0.9rem;
+        padding: 0.75rem;
+      }
+      
       .toolbar { 
         position: static;
         justify-content: center;
         margin-bottom: 1rem;
+        padding: 0.5rem;
+      }
+      
+      .toolbar button {
+        padding: 0.75rem 1.25rem;
+        font-size: 0.9rem;
       }
     }
   </style>
