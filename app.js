@@ -778,6 +778,7 @@
     })();
 
     var reportBtn = $('reportBtn'); if(reportBtn) reportBtn.addEventListener('click', function(e){ e.preventDefault(); generateReport(); });
+    var detailedBreakdownBtn = $('detailedBreakdownBtn'); if(detailedBreakdownBtn) detailedBreakdownBtn.addEventListener('click', function(e){ e.preventDefault(); showDetailedBreakdown(); });
   // Make Save/Load behave as Export/Import to keep only two actions
   var shareDraftBtn = $('shareDraftBtn');
   if(shareDraftBtn){
@@ -1314,6 +1315,418 @@
           }catch(e){}
         });
       }
+
+  // Detailed breakdown window function
+  function showDetailedBreakdown(){
+    if(!lastCalcSnapshot) calculate();
+    var snapshot = lastCalcSnapshot;
+    if(!snapshot){ alert('Please calculate the load before generating the breakdown.'); return; }
+    
+    var breakdownWindow = window.open('', '_blank');
+    
+    if(!breakdownWindow){
+      alert('Please allow pop-ups to view the detailed breakdown.');
+      return;
+    }
+    
+    var inspectionEl = $('inspectionDate');
+    var policyEl = $('policyNumber');
+    var inspectionValue = inspectionEl ? inspectionEl.value : '';
+    var policyValue = policyEl ? policyEl.value.trim() : '';
+    var inspectionDisplay = formatInspectionDate(inspectionValue) || 'Not provided';
+    var policyDisplay = policyValue ? escapeHtml(policyValue) : 'Not provided';
+    
+    var breakdownHtml = generateBreakdownHTML(snapshot, inspectionDisplay, policyDisplay);
+    
+    breakdownWindow.document.open();
+    breakdownWindow.document.write(breakdownHtml);
+    breakdownWindow.document.close();
+    breakdownWindow.focus();
+  }
+
+  function generateBreakdownHTML(snapshot, inspectionDisplay, policyDisplay){
+    function fmtW(n){ return new Intl.NumberFormat().format(Math.round(n)); }
+    function fmtA(n){ return new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 }).format(n); }
+    
+    var breakdownContent = generateBreakdownContent(snapshot);
+    
+    return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Load Calculation Breakdown</title>
+  <style>
+    :root {
+      --bg: #0b1426;
+      --bg-elevated: #172448;
+      --bg-card: #1b2d55;
+      --text: #f2f6ff;
+      --text-muted: #a9b9da;
+      --accent: #3d9bff;
+      --accent-secondary: #9a6bff;
+      --border: rgba(255,255,255,0.08);
+      --radius: 14px;
+      --shadow: 0 20px 50px rgba(4, 15, 40, 0.45);
+    }
+    
+    * { box-sizing: border-box; }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 2rem;
+      line-height: 1.6;
+      font-size: 16px;
+    }
+    
+    .breakdown-container {
+      max-width: 1000px;
+      margin: 0 auto;
+      background: var(--bg-card);
+      border-radius: var(--radius);
+      padding: 2rem;
+      box-shadow: var(--shadow);
+    }
+    
+    .breakdown-header {
+      text-align: center;
+      margin-bottom: 2rem;
+      padding-bottom: 1.5rem;
+      border-bottom: 2px solid var(--border);
+    }
+    
+    .breakdown-header h1 {
+      margin: 0 0 0.5rem;
+      font-size: 2.2rem;
+      font-weight: 600;
+      color: var(--text);
+    }
+    
+    .breakdown-header .subtitle {
+      color: var(--text-muted);
+      font-size: 1.1rem;
+      margin-bottom: 1rem;
+    }
+    
+    .breakdown-meta {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+      margin-top: 1rem;
+      font-size: 0.95rem;
+    }
+    
+    .breakdown-meta div {
+      background: rgba(255,255,255,0.03);
+      padding: 0.75rem;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+    }
+    
+    .breakdown-meta strong {
+      color: var(--accent);
+    }
+    
+    .breakdown-section {
+      margin-bottom: 2.5rem;
+    }
+    
+    .breakdown-section:last-child {
+      margin-bottom: 0;
+    }
+    
+    .breakdown-section h2 {
+      margin: 0 0 1.5rem;
+      font-size: 1.4rem;
+      font-weight: 600;
+      color: var(--accent);
+      border-bottom: 2px solid rgba(61,155,255,0.2);
+      padding-bottom: 0.75rem;
+    }
+    
+    .breakdown-calculation {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      font-size: 0.95rem;
+      line-height: 1.7;
+    }
+    
+    .breakdown-calculation:last-child {
+      margin-bottom: 0;
+    }
+    
+    .breakdown-code-ref {
+      color: var(--accent-secondary);
+      font-weight: 600;
+      font-size: 0.9rem;
+      margin-bottom: 1rem;
+      padding: 0.5rem 0.75rem;
+      background: rgba(154,107,255,0.1);
+      border-radius: 6px;
+      border-left: 3px solid var(--accent-secondary);
+    }
+    
+    .breakdown-formula {
+      color: var(--text);
+      margin-bottom: 0.5rem;
+      padding-left: 1rem;
+    }
+    
+    .breakdown-result {
+      color: var(--accent);
+      font-weight: 700;
+      border-top: 2px solid var(--border);
+      padding-top: 1rem;
+      margin-top: 1rem;
+      font-size: 1.05rem;
+      background: rgba(61,155,255,0.05);
+      padding: 1rem;
+      border-radius: 6px;
+      border: 1px solid rgba(61,155,255,0.2);
+    }
+    
+    .toolbar {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      display: flex;
+      gap: 10px;
+      z-index: 1000;
+    }
+    
+    .toolbar button {
+      background: var(--accent);
+      color: white;
+      border: none;
+      padding: 10px 16px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: background 0.2s ease;
+    }
+    
+    .toolbar button:hover {
+      background: #2a85e6;
+    }
+    
+    @media print {
+      .toolbar { display: none !important; }
+      body { padding: 0; background: white; color: black; }
+      .breakdown-container { 
+        background: white; 
+        box-shadow: none; 
+        border-radius: 0;
+        max-width: none;
+        margin: 0;
+        padding: 1rem;
+      }
+      .breakdown-header h1 { color: black; }
+      .breakdown-section h2 { color: black; }
+      .breakdown-code-ref { color: black; background: #f0f0f0; }
+      .breakdown-result { color: black; background: #f8f8f8; }
+      * { color: black !important; background: transparent !important; }
+    }
+    
+    @media (max-width: 768px) {
+      body { padding: 1rem; }
+      .breakdown-container { padding: 1.5rem; }
+      .breakdown-header h1 { font-size: 1.8rem; }
+      .breakdown-meta { grid-template-columns: 1fr; }
+      .toolbar { 
+        position: static;
+        justify-content: center;
+        margin-bottom: 1rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="toolbar">
+    <button onclick="window.print()">Print</button>
+    <button onclick="window.close()">Close</button>
+  </div>
+  
+  <div class="breakdown-container">
+    <div class="breakdown-header">
+      <h1>Load Calculation Breakdown</h1>
+      <div class="subtitle">CEC Section 8 - Single Dwelling Load Calculator</div>
+      <div class="breakdown-meta">
+        <div><strong>Inspection Date:</strong> ${inspectionDisplay}</div>
+        <div><strong>Policy Number:</strong> ${policyDisplay}</div>
+      </div>
+    </div>
+    
+    ${breakdownContent}
+    
+    <div style="margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid var(--border); text-align: center; color: var(--text-muted); font-size: 0.9rem;">
+      Breakdown generated on ${escapeHtml(new Date().toLocaleString())}
+    </div>
+  </div>
+</body>
+</html>`;
+  }
+
+  function generateBreakdownContent(snapshot){
+    function fmtW(n){ return new Intl.NumberFormat().format(Math.round(n)); }
+    function fmtA(n){ return new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 }).format(n); }
+    
+    var html = '';
+    
+    // Basic Load Section
+    html += '<div class="breakdown-section">';
+    html += '<h2>1. Basic Load Calculation</h2>';
+    html += '<div class="breakdown-calculation">';
+    html += '<div class="breakdown-code-ref">CEC 8-200(1)(a)(i)(ii) - Basic load for dwelling units</div>';
+    html += '<div class="breakdown-formula">Living area: ' + fmtA(snapshot.area.livingFt2) + ' ft² (' + fmtA(snapshot.area.livingFt2 / 10.764) + ' m²)</div>';
+    
+    if(snapshot.area.livingFt2 / 10.764 <= 90){
+      html += '<div class="breakdown-formula">Area ≤ 90 m²: Basic load of 5000 W for the first 90 m² of living area</div>';
+    } else {
+      var extraSqM = (snapshot.area.livingFt2 / 10.764) - 90;
+      var blocks = Math.ceil(extraSqM / 90);
+      html += '<div class="breakdown-formula">First 90 m²: 5000 W (basic load)</div>';
+      html += '<div class="breakdown-formula">Extra area: ' + fmtA(extraSqM) + ' m² ÷ 90 = ' + fmtA(blocks) + ' blocks (or portion thereof)</div>';
+      html += '<div class="breakdown-formula">Additional load: ' + blocks + ' × 1000 W = ' + fmtW(blocks * 1000) + ' W</div>';
+    }
+    html += '<div class="breakdown-result">Basic Load Total: ' + fmtW(snapshot.loads.basic) + ' W</div>';
+    html += '</div>';
+    html += '</div>';
+
+    // Space Conditioning Section
+    html += '<div class="breakdown-section">';
+    html += '<h2>2. Space Conditioning Load</h2>';
+    html += '<div class="breakdown-calculation">';
+    html += '<div class="breakdown-code-ref">CEC 8-200(1)(a)(iii) - Electric space-heating and air-conditioning loads</div>';
+    html += '<div class="breakdown-formula">Space heating demand: ' + fmtW(snapshot.loads.spaceHeatDemandW) + ' W</div>';
+    html += '<div class="breakdown-formula">Air conditioning demand: ' + fmtW(snapshot.loads.airCondDemandW) + ' W</div>';
+    html += '<div class="breakdown-formula">Space heating: demand factors as permitted in Section 62</div>';
+    html += '<div class="breakdown-formula">Air conditioning: 100% demand factor, subject to Rule 8-106(3)</div>';
+    
+    if(snapshot.loads.interlock){
+      html += '<div class="breakdown-formula">Interlocked system per Rule 8-106(3): Use maximum of heating or cooling</div>';
+      html += '<div class="breakdown-formula">Max(' + fmtW(snapshot.loads.spaceHeatDemandW) + ', ' + fmtW(snapshot.loads.airCondDemandW) + ') = ' + fmtW(snapshot.loads.spaceConditioningW) + ' W</div>';
+    } else {
+      html += '<div class="breakdown-formula">Non-interlocked: Heating + cooling loads</div>';
+      html += '<div class="breakdown-formula">' + fmtW(snapshot.loads.spaceHeatDemandW) + ' + ' + fmtW(snapshot.loads.airCondDemandW) + ' = ' + fmtW(snapshot.loads.spaceConditioningW) + ' W</div>';
+    }
+    html += '<div class="breakdown-result">Space Conditioning Total: ' + fmtW(snapshot.loads.spaceConditioningW) + ' W</div>';
+    html += '</div>';
+    html += '</div>';
+
+    // Cooking Ranges Section
+    html += '<div class="breakdown-section">';
+    html += '<h2>3. Electric Range Load</h2>';
+    html += '<div class="breakdown-calculation">';
+    html += '<div class="breakdown-code-ref">CEC 8-200(1)(a)(iv) - Electric range load calculation</div>';
+    if(snapshot.loads.totalRanges === 0){
+      html += '<div class="breakdown-formula">No electric ranges installed</div>';
+    } else if(snapshot.loads.totalRanges === 1){
+      html += '<div class="breakdown-formula">Single range: 6000 W for a single range plus 40% of any amount by which the rating exceeds 12 kW</div>';
+      html += '<div class="breakdown-formula">Range demand calculation applied per Rule 8-200(1)(a)(iv)</div>';
+    } else {
+      html += '<div class="breakdown-formula">Multiple ranges: Apply Rule 8-200(1)(a)(iv) calculation method</div>';
+    }
+    html += '<div class="breakdown-result">Electric Range Total: ' + fmtW(snapshot.loads.rangesDemandW) + ' W</div>';
+    html += '</div>';
+    html += '</div>';
+
+    // Water Heating Section
+    html += '<div class="breakdown-section">';
+    html += '<h2>4. Electric Water Heating Load</h2>';
+    html += '<div class="breakdown-calculation">';
+    html += '<div class="breakdown-code-ref">CEC 8-200(1)(a)(v) - Electric tankless water heaters and specialized equipment</div>';
+    html += '<div class="breakdown-formula">Electric tankless water heaters: ' + fmtW(snapshot.loads.tanklessWatts) + ' W (100% demand factor)</div>';
+    html += '<div class="breakdown-formula">Electric water heaters for steamers, swimming pools, hot tubs, or spas: ' + fmtW(snapshot.loads.specialDedicatedW) + ' W (100% demand factor)</div>';
+    html += '<div class="breakdown-result">Water Heating Total: ' + fmtW(snapshot.loads.specialTotalW) + ' W</div>';
+    html += '</div>';
+    html += '</div>';
+
+    // EV Charging Section
+    html += '<div class="breakdown-section">';
+    html += '<h2>5. Electric Vehicle Supply Equipment</h2>';
+    html += '<div class="breakdown-calculation">';
+    html += '<div class="breakdown-code-ref">CEC 8-200(1)(a)(vi) - Electric vehicle supply equipment loads</div>';
+    html += '<div class="breakdown-formula">Chargers installed: ' + snapshot.loads.evseCount + '</div>';
+    html += '<div class="breakdown-formula">Per charger rating: ' + fmtW(snapshot.loads.evseWatts) + ' W</div>';
+    if(snapshot.loads.evems){
+      html += '<div class="breakdown-formula">Exception per Rule 8-106(11): EVEMS present - load excluded</div>';
+      html += '<div class="breakdown-result">EVSE Total: 0 W (excluded per Rule 8-106(11))</div>';
+    } else {
+      html += '<div class="breakdown-formula">100% demand factor: ' + snapshot.loads.evseCount + ' × ' + fmtW(snapshot.loads.evseWatts) + ' W = ' + fmtW(snapshot.loads.evseDemandW) + ' W</div>';
+      html += '<div class="breakdown-result">EVSE Total: ' + fmtW(snapshot.loads.evseDemandW) + ' W</div>';
+    }
+    html += '</div>';
+    html += '</div>';
+
+    // Other Loads Section
+    html += '<div class="breakdown-section">';
+    html += '<h2>6. Other Loads (Rating > 1500 W)</h2>';
+    html += '<div class="breakdown-calculation">';
+    html += '<div class="breakdown-code-ref">CEC 8-200(1)(a)(vii) - Loads > 1500 W (additional to items i-vi)</div>';
+    html += '<div class="breakdown-formula">Storage water heater: ' + fmtW(snapshot.loads.storageWHWatts) + ' W</div>';
+    html += '<div class="breakdown-formula">Manual appliances: ' + fmtW(snapshot.loads.manualAppliancesW) + ' W</div>';
+    html += '<div class="breakdown-formula">Combined load for demand factor calculation: ' + fmtW(snapshot.loads.appliancesPoolW) + ' W</div>';
+    
+    if(snapshot.loads.totalRanges > 0){
+      html += '<div class="breakdown-formula">Rule 8-200(1)(a)(vii)(A): Electric range provided - 25% demand factor</div>';
+      html += '<div class="breakdown-formula">' + fmtW(snapshot.loads.appliancesPoolW) + ' × 0.25 = ' + fmtW(snapshot.loads.otherDemandW) + ' W</div>';
+    } else {
+      var first6kW = Math.min(6000, snapshot.loads.appliancesPoolW);
+      var remainder = Math.max(0, snapshot.loads.appliancesPoolW - 6000);
+      html += '<div class="breakdown-formula">Rule 8-200(1)(a)(vii)(B): No electric range provided</div>';
+      html += '<div class="breakdown-formula">100% of combined load up to 6000 W: ' + fmtW(first6kW) + ' W</div>';
+      if(remainder > 0){
+        html += '<div class="breakdown-formula">25% of combined load exceeding 6000 W: ' + fmtW(remainder) + ' × 0.25 = ' + fmtW(remainder * 0.25) + ' W</div>';
+      }
+    }
+    html += '<div class="breakdown-result">Other Loads Total: ' + fmtW(snapshot.loads.otherDemandW) + ' W</div>';
+    html += '</div>';
+    html += '</div>';
+
+    // Path Calculations Section
+    html += '<div class="breakdown-section">';
+    html += '<h2>7. Final Load Calculation</h2>';
+    html += '<div class="breakdown-calculation">';
+    html += '<div class="breakdown-code-ref">CEC 8-200(1) - Calculated load based on greater of (a) or (b)</div>';
+    html += '<div class="breakdown-formula"><strong>Path A - Detailed Sum per Rule 8-200(1)(a):</strong></div>';
+    html += '<div class="breakdown-formula">Basic load (i)(ii): ' + fmtW(snapshot.loads.basic) + ' W</div>';
+    html += '<div class="breakdown-formula">Space conditioning (iii): ' + fmtW(snapshot.loads.spaceConditioningW) + ' W</div>';
+    html += '<div class="breakdown-formula">Electric range (iv): ' + fmtW(snapshot.loads.rangesDemandW) + ' W</div>';
+    html += '<div class="breakdown-formula">Water heating (v): ' + fmtW(snapshot.loads.specialTotalW) + ' W</div>';
+    html += '<div class="breakdown-formula">EVSE (vi): ' + fmtW(snapshot.loads.evseDemandW) + ' W</div>';
+    html += '<div class="breakdown-formula">Other loads (vii): ' + fmtW(snapshot.loads.otherDemandW) + ' W</div>';
+    html += '<div class="breakdown-result">Path A Total: ' + fmtW(snapshot.results.pathA) + ' W</div>';
+    html += '</div>';
+    
+    html += '<div class="breakdown-calculation">';
+    html += '<div class="breakdown-code-ref">CEC 8-200(1)(b) - Minimum service capacity based on floor area</div>';
+    var pathBNote = snapshot.area.exclusiveFt2 >= 80 * 10.764 ? 'Rule 8-200(1)(b)(i): Floor area ≥ 80 m² (exclusive of basement)' : 'Rule 8-200(1)(b)(ii): Floor area < 80 m² (exclusive of basement)';
+    var pathBLoad = snapshot.area.exclusiveFt2 >= 80 * 10.764 ? '24,000 W' : '14,400 W';
+    html += '<div class="breakdown-formula"><strong>Path B - Fixed Minimum per Rule 8-200(1)(b):</strong></div>';
+    html += '<div class="breakdown-formula">Floor area (exclusive of basement): ' + fmtA(snapshot.area.exclusiveFt2 / 10.764) + ' m²</div>';
+    html += '<div class="breakdown-formula">' + pathBNote + ': ' + pathBLoad + '</div>';
+    html += '<div class="breakdown-result">Path B Total: ' + fmtW(snapshot.results.pathB) + ' W</div>';
+    html += '</div>';
+
+    html += '<div class="breakdown-calculation">';
+    html += '<div class="breakdown-formula"><strong>Final Calculated Load per Rule 8-200(1):</strong></div>';
+    html += '<div class="breakdown-formula">The calculated load shall be based on the greater of Path A or Path B</div>';
+    html += '<div class="breakdown-formula">Maximum of ' + fmtW(snapshot.results.pathA) + ' W (Path A) and ' + fmtW(snapshot.results.pathB) + ' W (Path B)</div>';
+    html += '<div class="breakdown-result">Calculated Load: ' + fmtW(snapshot.results.calcLoad) + ' W</div>';
+    html += '<div class="breakdown-result">Minimum Service Current: ' + fmtA(snapshot.results.amps) + ' A @ ' + snapshot.results.voltage + ' V</div>';
+    html += '</div>';
+    html += '</div>';
+
+    return html;
+  }
 
   })();
 
