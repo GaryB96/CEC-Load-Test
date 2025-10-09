@@ -992,9 +992,34 @@
         var text = payload;
 
   console.debug('shareDraft: preparing share', { filename });
+  
+  // Detect if we're on a desktop/PC environment
+  var isDesktop = !navigator.userAgent.match(/Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i);
+  var isShareSupported = navigator.share && navigator.canShare;
+  
+  // On desktop or when share API is not properly supported, go directly to download
+  if(isDesktop || !isShareSupported) {
+    try{ showToast('Downloading draft file...', 2200); }catch(e){}
+    console.debug('shareDraft: using download fallback for desktop');
+    var blob = new Blob([text], { type: 'text/plain' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a'); 
+    a.href = url; 
+    a.download = filename; 
+    a.style.display = 'none';
+    document.body.appendChild(a); 
+    a.click(); 
+    setTimeout(function(){ 
+      URL.revokeObjectURL(url); 
+      a.remove(); 
+      try{ showToast('Draft saved as ' + filename, 3000); }catch(e){}
+    }, 100);
+    return { method: 'download', fileType: 'text' };
+  }
+
   try{ showToast('Opening share sheet…', 3000); }catch(e){}
 
-        // Prefer sharing a file when supported
+        // For mobile devices, try Web Share API
         try{
           if(navigator.canShare && navigator.share){
             var file = new File([text], filename, { type: 'text/plain' });
@@ -1010,12 +1035,6 @@
             try{ await navigator.share({ title: 'CEC Draft', text: text }); console.debug('shareDraft: share() succeeded with text payload'); try{ showToast('Shared text to app',2000); }catch(e){}; return { method: 'share', fileType: 'text' }; }catch(e){ console.debug('shareDraft: share(text) rejected', e); }
           }
         }catch(e){ console.debug('shareDraft: navigator.share/canShare threw', e); }
-
-        // If navigator.share wasn't present at all, give immediate feedback in UI so the user knows share isn't supported
-        if(!navigator.share){
-          try{ showToast('Share not supported — downloading .txt for manual upload', 3000); }catch(e){}
-          try{ console.debug('shareDraft: navigator.share not available, performing download fallback'); }catch(e){}
-        }
 
         // Final fallback: download .txt
   console.debug('shareDraft: falling back to download');
