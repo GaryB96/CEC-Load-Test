@@ -794,11 +794,7 @@
     try{
       var t = e && e.target;
       if(!t) return;
-      if(t.id === 'shareDraftBtn' || (t.closest && t.closest('#shareDraftBtn'))){
-        try{ console.log('[UI-delegated] shareDraftBtn clicked (delegated)'); }catch(_){}
-        e.preventDefault();
-        try{ shareDraft(); }catch(err){ console.warn('shareDraft() failed in delegated handler', err); }
-      }
+      // Note: shareDraftBtn is handled by direct event listener above, no need for delegated fallback
     }catch(_){ /* ignore */ }
   });
   var loadDraftBtn = $('loadDraftBtn'); if(loadDraftBtn) loadDraftBtn.addEventListener('click', function(e){ e.preventDefault(); importDraft(); });
@@ -1017,6 +1013,7 @@
     return { method: 'download', fileType: 'text' };
   }
 
+  // Only try Web Share API on mobile devices
   try{ showToast('Opening share sheet…', 3000); }catch(e){}
 
         // For mobile devices, try Web Share API
