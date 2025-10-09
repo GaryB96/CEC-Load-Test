@@ -1045,10 +1045,10 @@
 
     function importDraft(){
       try{
-        var input = document.createElement('input'); input.type = 'file'; input.accept = '.json,application/json';
+        var input = document.createElement('input'); input.type = 'file'; input.accept = '.json,.txt,application/json,text/plain';
         input.addEventListener('change', function(evt){
           var file = input.files && input.files[0]; if(!file) return; var reader = new FileReader();
-          reader.onload = function(){ try{ var parsed = JSON.parse(reader.result); var data = parsed && parsed.data ? parsed.data : parsed; if(!confirm('Load imported draft and replace current form?')) return; _applyForm(data); alert('Imported draft applied.'); }catch(e){ console.warn(e); alert('Invalid draft file.'); } };
+          reader.onload = function(){ try{ var parsed = JSON.parse(reader.result); var data = parsed && parsed.data ? parsed.data : parsed; if(!confirm('Load imported draft and replace current form?')) return; _applyForm(data); alert('Imported draft applied.'); }catch(e){ console.warn(e); alert('Invalid draft file. Please ensure the file contains valid JSON data.'); } };
           reader.readAsText(file);
         });
         input.click();
