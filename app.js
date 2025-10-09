@@ -1553,26 +1553,35 @@
     
     @media (max-width: 768px) {
       body { 
-        padding: 0.5rem; 
+        padding: 0; 
         font-size: 14px;
+        margin: 0;
       }
       
       .breakdown-container { 
         padding: 1rem;
         margin: 0;
-        border-radius: 8px;
+        border-radius: 0;
         max-width: none;
-        width: 100%;
+        width: 100vw;
+        min-height: 100vh;
         box-sizing: border-box;
+        box-shadow: none;
+      }
+      
+      .breakdown-header {
+        padding-bottom: 1rem;
+        margin-bottom: 1.5rem;
       }
       
       .breakdown-header h1 { 
-        font-size: 1.5rem;
+        font-size: 1.4rem;
         margin-bottom: 0.5rem;
+        line-height: 1.3;
       }
       
       .breakdown-header .subtitle {
-        font-size: 0.9rem;
+        font-size: 0.85rem;
         margin-bottom: 0.75rem;
       }
       
@@ -1583,40 +1592,44 @@
       }
       
       .breakdown-meta div {
-        padding: 0.5rem;
-        font-size: 0.85rem;
+        padding: 0.6rem;
+        font-size: 0.8rem;
       }
       
       .breakdown-section {
-        margin-bottom: 1.5rem;
+        margin-bottom: 1.25rem;
       }
       
       .breakdown-section h2 {
-        font-size: 1.1rem;
-        margin-bottom: 1rem;
+        font-size: 1rem;
+        margin-bottom: 0.8rem;
+        padding-bottom: 0.4rem;
       }
       
       .breakdown-calculation {
-        padding: 1rem;
-        margin-bottom: 1rem;
-        border-radius: 8px;
+        padding: 0.8rem;
+        margin-bottom: 0.8rem;
+        border-radius: 6px;
       }
       
       .breakdown-code-ref {
-        font-size: 0.8rem;
+        font-size: 0.75rem;
         padding: 0.4rem 0.6rem;
-        margin-bottom: 0.75rem;
+        margin-bottom: 0.6rem;
+        line-height: 1.3;
       }
       
       .breakdown-formula {
-        font-size: 0.85rem;
+        font-size: 0.8rem;
         line-height: 1.4;
-        margin-bottom: 0.4rem;
+        margin-bottom: 0.3rem;
+        padding-left: 0.5rem;
       }
       
       .breakdown-result {
-        font-size: 0.9rem;
-        padding: 0.75rem;
+        font-size: 0.85rem;
+        padding: 0.6rem;
+        margin-top: 0.6rem;
       }
       
       .toolbar { 
@@ -1624,11 +1637,14 @@
         justify-content: center;
         margin-bottom: 1rem;
         padding: 0.5rem;
+        width: 100%;
+        box-sizing: border-box;
       }
       
       .toolbar button {
-        padding: 0.75rem 1.25rem;
-        font-size: 0.9rem;
+        padding: 0.7rem 1rem;
+        font-size: 0.85rem;
+        margin: 0 0.25rem;
       }
     }
   </style>
